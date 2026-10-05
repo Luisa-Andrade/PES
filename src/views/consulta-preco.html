@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consulta de Preço - FarmaVida PDV</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <style>
+    body { margin: 0; }
+    .consult-container { max-width: 1280px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr); gap: 18px; align-items: start; }
+    .consult-card { background: #fff; padding: 22px; margin-bottom: 18px; }
+    .consult-card h2 { margin: 0 0 16px; color: var(--accent-color); font-size: 18px; }
+    .consult-card label { display: block; margin-bottom: 7px; font-weight: 600; }
+    .consult-card input { width: 100%; padding: 11px 12px; border: 1px solid var(--border-color); font-size: 14px; }
+    .consult-toolbar, .consult-search-row { display: flex; align-items: center; gap: 10px; }
+    .consult-toolbar { justify-content: space-between; margin-bottom: 16px; }
+    .consult-toolbar h2 { margin: 0; }
+    .consult-search-row input { flex: 1; min-width: 0; }
+    .consult-toolbar button, .consult-search-row button { min-height: 42px; padding: 9px 14px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+    .consult-help { color: #60756e; font-size: 13px; margin: 9px 0 0; }
+    .consult-results { display: grid; gap: 8px; margin-top: 16px; max-height: 390px; overflow: auto; }
+    .consult-result { width: 100%; padding: 12px 14px; text-align: left; background: #fff; border: 1px solid var(--border-color); cursor: pointer; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .consult-result:hover, .consult-result:focus-visible { background: #eef8f4; border-color: var(--secondary-color); }
+    .consult-result strong, .consult-result small { display: block; }
+    .consult-result small { margin-top: 3px; color: #60756e; }
+    .consult-result-aside { display: grid; justify-items: end; gap: 5px; flex: 0 0 auto; }
+    .consult-result .price { color: var(--primary-color); font-weight: 700; white-space: nowrap; }
+    .consult-stock-badge { display: inline-flex; align-items: center; border-radius: 20px; padding: 3px 8px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .consult-stock-badge.is-available { color: #08724f; background: #e9f6ef; }
+    .consult-stock-badge.is-empty { color: #a33a4e; background: #fff0f2; }
+    .consult-selection { position: sticky; top: 16px; }
+    .consult-empty { color: #60756e; line-height: 1.5; }
+    .consult-selection [hidden] { display: none !important; }
+    .consult-product-name { font-size: 20px; font-weight: 700; margin: 0 0 8px; }
+    .consult-price { color: var(--primary-color); font-size: 28px; font-weight: 700; margin: 0 0 14px; }
+    .consult-product-facts { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px 0 16px; border-top: 1px solid var(--border-color); }
+    .consult-code { color: #60756e; font-size: 13px; }
+    .consult-result small { overflow-wrap: anywhere; }
+    .consult-stock { display: inline-flex; border-radius: 20px; padding: 4px 9px; font-size: 12px; font-weight: 650; }
+    .consult-stock.is-available { color: #08724f; background: #e9f6ef; }
+    .consult-stock.is-empty { color: #a33a4e; background: #fff0f2; }
+    .consult-actions { display: grid; grid-template-columns: minmax(105px, 135px) 1fr; gap: 12px; align-items: end; }
+    .consult-actions .qty-field { min-width: 0; }
+    .consult-actions input { min-height: 44px; }
+    .consult-subtotal { min-height: 44px; display: flex; align-items: center; justify-content: flex-end; color: #34584c; font-size: 14px; font-weight: 650; white-space: nowrap; }
+    .consult-actions button { grid-column: 1 / -1; min-height: 44px; padding: 10px 18px; font-weight: 650; cursor: pointer; }
+    .consult-actions #goToSale:disabled { cursor: not-allowed; color: #61756e !important; background: #e8efec !important; border-color: #d8e4df !important; opacity: 1 !important; }
+    .consult-actions input:disabled { background: #f4f8f6; color: #61756e; cursor: not-allowed; }
+    .consult-status { min-height: 20px; margin: 10px 0 0; color: #60756e; font-size: 13px; line-height: 1.4; }
+    .consult-status.is-error { color: #a33a4e; }
+    @media (max-width: 760px) { .consult-container { padding: 12px; grid-template-columns: 1fr; } .consult-selection { position: static; } }
+    @media (max-width: 540px) { .consult-toolbar, .consult-search-row { align-items: stretch; flex-direction: column; } .consult-result { align-items: flex-start; } }
+  </style>
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-title">Consulta de Preço</div>
+    <div class="app-header-actions"><button id="backBtn" class="nav-home-btn" type="button">Voltar ao Início</button></div>
+  </header>
+  <main class="consult-container">
+    <section class="card consult-card">
+      <div class="consult-toolbar"><h2>Produtos e preços</h2><button id="refreshProducts" class="app-secondary-btn" type="button">Atualizar preços</button></div>
+      <label for="productQuery">Nome, código ou código de barras</label>
+      <div class="consult-search-row">
+        <input id="productQuery" type="search" autocomplete="off" placeholder="Digite ou use o leitor de código de barras">
+        <button id="lookupBarcode" class="app-primary-btn" type="button">Consultar código</button>
+      </div>
+      <p class="consult-help">Digite para filtrar. Se usar um leitor, pressione Enter ou clique em “Consultar código” para selecionar o produto exato.</p>
+      <p id="searchStatus" class="consult-help" role="status"></p>
+      <div id="results" class="consult-results" aria-live="polite"></div>
+    </section>
+    <section id="selection" class="card consult-card consult-selection" aria-live="polite">
+      <h2>Produto selecionado</h2>
+      <p id="emptySelection" class="consult-empty">Selecione um produto da lista para ver o preço, escolher a quantidade e seguir para o PDV.</p>
+      <div id="selectedDetails" hidden>
+        <p id="productName" class="consult-product-name"></p>
+        <p id="unitPrice" class="consult-price"></p>
+        <div class="consult-product-facts">
+          <span id="productCode" class="consult-code"></span>
+          <span id="productStock" class="consult-stock"></span>
+        </div>
+        <div class="consult-actions">
+          <div class="qty-field"><label for="quantity">Quantidade</label><input id="quantity" type="number" min="1" step="1" value="1"></div>
+          <div id="subtotal" class="consult-subtotal"></div>
+          <button id="goToSale" class="app-primary-btn" type="button">Ir para venda</button>
+        </div>
+        <p id="status" class="consult-status" role="status"></p>
+      </div>
+    </section>
+  </main>
+  <script src="../scripts/consulta-preco.js"></script>
+</body>
+</html>

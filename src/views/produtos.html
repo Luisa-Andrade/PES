@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro de Produtos - FarmaVida PDV</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <style>
+    :root {
+      --primary-color: #f57c00;
+      --secondary-color: #ffa726;
+      --accent-color: #1565c0;
+      --text-color: #333;
+      --light-bg: #f5f5f5;
+      --border-color: #e0e0e0;
+      --success-color: #43a047;
+      --error-color: #e53935;
+    }
+    
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--light-bg);
+    }
+    
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      border: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn-voltar {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-voltar:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .main-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 20px;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+    
+    .card-header {
+      background-color: #f9f9f9;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--accent-color);
+    }
+    
+    .card-body {
+      padding: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 18px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text-color);
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.1);
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+    }
+    
+    #btnSalvar {
+      background-color: var(--accent-color);
+      color: white;
+      min-width: 100px;
+    }
+    
+    #btnSalvar:hover {
+      background-color: #0d47a1;
+    }
+    
+    #btnCancelar {
+      background-color: #f5f5f5;
+      color: var(--text-color);
+      border: 1px solid #ddd;
+    }
+    
+    #btnCancelar:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .table-responsive {
+      overflow-x: auto;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th {
+      text-align: left;
+      padding: 12px 15px;
+      background-color: #f9f9f9;
+      color: var(--text-color);
+      font-weight: 600;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+    }
+    
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    
+    tbody tr:hover {
+      background-color: rgba(245, 124, 0, 0.05);
+    }
+    
+    .acoes {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .btn-edit {
+      background-color: var(--accent-color);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-delete {
+      background-color: var(--error-color);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-restore {
+      background-color: var(--success-color);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-remove-permanent {
+      background-color: #9c27b0;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .btn-secundario:hover {
+      background-color: #0d47a1;
+    }
+    
+    .btn-perigo:hover {
+      background-color: #c62828;
+    }
+    
+    .produto-inativo {
+      opacity: 0.6;
+    }
+    
+    .status-message {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    
+    .error {
+      background-color: #ffebee;
+      border: 1px solid #ffcdd2;
+      color: var(--error-color);
+    }
+    
+    .success {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      color: var(--success-color);
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 30px 15px;
+      color: #757575;
+      font-style: italic;
+    }
+    
+    .search-container {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    
+    #searchInput {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      min-width: 250px;
+      flex-grow: 1;
+    }
+    
+    .btn-search {
+      background-color: var(--accent-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+    
+    .btn-clear {
+      background-color: #e0e0e0;
+      color: #333;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 15px;
+      cursor: pointer;
+    }
+    
+    .filters-row {
+      display: flex;
+      margin-bottom: 10px;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .filter-group select, .filter-group input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .badge-stock-low {
+      background-color: #ffecb3;
+      color: #ff8f00;
+    }
+    
+    .badge-stock-ok {
+      background-color: #c8e6c9;
+      color: #2e7d32;
+    }
+    
+    .badge-stock-high {
+      background-color: #bbdefb;
+      color: #1565c0;
+    }
+    
+    .input-group {
+      display: flex;
+      align-items: center;
+    }
+    
+    .input-group-prepend {
+      background-color: #f5f5f5;
+      border: 1px solid var(--border-color);
+      border-right: none;
+      padding: 10px 12px;
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+      color: #757575;
+    }
+    
+    .input-group input {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 0;
+    }
+    
+    .form-col {
+      flex: 1;
+    }
+    
+    .form-section {
+      margin-bottom: 20px;
+    }
+    
+    .form-section-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--accent-color);
+      margin-bottom: 15px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .icon-text {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .tooltip .tooltip-text {
+      visibility: hidden;
+      width: 200px;
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -100px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+    }
+    
+    .tooltip:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    @media (max-width: 1200px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-header-title">Cadastro de Produtos</h1>
+    <div class="header-buttons app-header-actions">
+      <button id="btn-voltar-menu" class="btn btn-voltar nav-home-btn">Voltar ao Início</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Formulário de Produto -->
+    <div class="card">
+      <div class="card-header">
+        <h2 id="formTitle">Novo Produto</h2>
+      </div>
+      <div class="card-body">
+        <div id="statusMessage" class="status-message"></div>
+        
+        <form id="produtoForm">
+          <input type="hidden" id="produtoId">
+          
+          <div class="form-section">
+            <div class="form-section-title">Informações Básicas</div>
+            <div class="form-group">
+              <label><input type="checkbox" id="exigeReceita"> Exige receita para finalizar a venda</label>
+            </div>
+            
+            <div class="form-group">
+              <label for="codigo">Código do Produto:</label>
+              <input type="text" id="codigo" placeholder="Ex: MED001">
+            </div>
+
+            <div class="form-group">
+              <label for="codigoBarras">Código de Barras:</label>
+              <input type="text" id="codigoBarras" placeholder="Ex.: 7891234567890">
+            </div>
+            
+            <div class="form-group">
+              <label for="nome">Nome do Produto:</label>
+              <input type="text" id="nome" required placeholder="Nome completo do produto">
+            </div>
+            
+            <div class="form-group">
+              <label for="descricao">Descrição:</label>
+              <textarea id="descricao" rows="3" placeholder="Descrição detalhada do produto"></textarea>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label for="categoria">Categoria:</label>
+                  <select id="categoria">
+                    <option value="">Selecione...</option>
+                    <option value="Medicamentos">Medicamentos</option>
+                    <option value="Genéricos">Genéricos</option>
+                    <option value="Higiene Pessoal">Higiene Pessoal</option>
+                    <option value="Perfumaria">Perfumaria</option>
+                    <option value="Dermocosméticos">Dermocosméticos</option>
+                    <option value="Vitaminas e Suplementos">Vitaminas e Suplementos</option>
+                    <option value="Primeiros Socorros">Primeiros Socorros</option>
+                    <option value="Infantil">Infantil</option>
+                    <option value="Conveniência">Conveniência</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label for="unidadeMedida">Unidade de Medida:</label>
+                  <select id="unidadeMedida">
+                    <option value="un">Unidade (un)</option>
+                    <option value="cx">Caixa (cx)</option>
+                    <option value="fr">Frasco (fr)</option>
+                    <option value="bl">Blíster (bl)</option>
+                    <option value="tb">Tubo (tb)</option>
+                    <option value="kg">Quilograma (kg)</option>
+                    <option value="lt">Litro (lt)</option>
+                    <option value="pc">Pacote (pc)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-section">
+            <div class="form-section-title">Preços e Estoque</div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label for="preco">Preço de Custo (R$):</label>
+                  <div class="input-group">
+                    <span class="input-group-prepend">R$</span>
+                    <input type="number" id="preco" step="0.01" min="0" placeholder="0,00">
+                  </div>
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label for="precoVenda">Preço de Venda (R$):</label>
+                  <div class="input-group">
+                    <span class="input-group-prepend">R$</span>
+                    <input type="number" id="precoVenda" step="0.01" min="0" placeholder="0,00">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-col">
+                <div class="form-group">
+                  <label for="estoque">Estoque Atual:</label>
+                  <input type="number" id="estoque" min="0" placeholder="Quantidade em estoque">
+                </div>
+              </div>
+              <div class="form-col">
+                <div class="form-group">
+                  <label for="estoqueMinimo">Estoque Mínimo:</label>
+                  <input type="number" id="estoqueMinimo" min="0" placeholder="Quantidade mínima">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="actions">
+            <button type="button" id="btnCancelar">Cancelar</button>
+            <button type="submit" id="btnSalvar">Salvar Produto</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Lista de Produtos -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Lista de Produtos</h2>
+        <div class="search-container">
+          <input type="text" id="searchInput" placeholder="Buscar produto...">
+          <button id="searchButton" class="btn-search">Buscar</button>
+          <button id="clearSearchButton" class="btn-clear">Limpar</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="filters-row">
+          <div class="filter-group">
+            <label for="filterCategoria">Categoria:</label>
+            <select id="filterCategoria">
+              <option value="">Todas</option>
+              <option value="Medicamentos">Medicamentos</option>
+              <option value="Genéricos">Genéricos</option>
+              <option value="Higiene Pessoal">Higiene Pessoal</option>
+              <option value="Perfumaria">Perfumaria</option>
+              <option value="Dermocosméticos">Dermocosméticos</option>
+              <option value="Vitaminas e Suplementos">Vitaminas e Suplementos</option>
+              <option value="Primeiros Socorros">Primeiros Socorros</option>
+              <option value="Infantil">Infantil</option>
+              <option value="Conveniência">Conveniência</option>
+              <option value="Outros">Outros</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="filterEstoque">Estoque:</label>
+            <select id="filterEstoque">
+              <option value="">Todos</option>
+              <option value="baixo">Estoque Baixo</option>
+              <option value="normal">Estoque Normal</option>
+              <option value="zero">Em Falta</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Nome</th>
+                <th>Categoria</th>
+                <th>Preço</th>
+                <th>Estoque</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="produtosTableBody">
+              <!-- Os produtos serão inseridos aqui -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/electronInputFixer.js"></script>
+  <script src="../scripts/produtos.js"></script>
+</body>
+</html>

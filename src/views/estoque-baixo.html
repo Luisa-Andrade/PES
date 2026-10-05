@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtos em Falta ou Baixa Quantidade - FarmaVida</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    :root {
+      --primary-color: #f57c00;
+      --secondary-color: #ffa726;
+      --accent-color: #1565c0;
+      --text-color: #333;
+      --light-bg: #f5f5f5;
+      --border-color: #e0e0e0;
+      --success-color: #43a047;
+      --error-color: #e53935;
+      --warning-color: #fb8c00;
+      --danger-color: #d32f2f;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+      margin: 0;
+      padding: 0;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    header h1 {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      border: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn-voltar {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-voltar:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .filtros-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    
+    .filtros-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      align-items: end;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .form-group label {
+      margin-bottom: 5px;
+      font-weight: 500;
+      color: var(--text-color);
+      font-size: 14px;
+    }
+    
+    .form-group select,
+    .form-group input {
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    
+    .btn-atualizar {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 10px 25px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    
+    .btn-atualizar:hover {
+      background-color: #e65100;
+    }
+    
+    .resumo-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .resumo-card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    
+    .resumo-icon {
+      font-size: 40px;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    
+    .resumo-icon.danger {
+      background-color: rgba(211, 47, 47, 0.1);
+      color: var(--danger-color);
+    }
+    
+    .resumo-icon.warning {
+      background-color: rgba(251, 140, 0, 0.1);
+      color: var(--warning-color);
+    }
+    
+    .resumo-icon.info {
+      background-color: rgba(21, 101, 192, 0.1);
+      color: var(--accent-color);
+    }
+    
+    .resumo-info h3 {
+      font-size: 28px;
+      color: var(--text-color);
+      margin-bottom: 5px;
+    }
+    
+    .resumo-info p {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .tabela-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tabela-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .tabela-header h2 {
+      color: var(--accent-color);
+      font-size: 20px;
+    }
+    
+    .btn-exportar {
+      background-color: var(--success-color);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+      margin-left: 10px;
+    }
+    
+    .btn-exportar:hover {
+      background-color: #2e7d32;
+    }
+    
+    .btn-exportar.pdf {
+      background-color: var(--error-color);
+    }
+    
+    .btn-exportar.pdf:hover {
+      background-color: #c62828;
+    }
+    
+    .export-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    thead {
+      background-color: var(--light-bg);
+    }
+    
+    th {
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-color);
+      border-bottom: 2px solid var(--border-color);
+    }
+    
+    td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    tbody tr:hover {
+      background-color: rgba(245, 124, 0, 0.05);
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-badge.critico {
+      background-color: rgba(211, 47, 47, 0.1);
+      color: var(--danger-color);
+    }
+    
+    .status-badge.baixo {
+      background-color: rgba(251, 140, 0, 0.1);
+      color: var(--warning-color);
+    }
+    
+    .status-badge.normal {
+      background-color: rgba(67, 160, 71, 0.1);
+      color: var(--success-color);
+    }
+    
+    .mensagem {
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    
+    .mensagem.info {
+      background-color: rgba(21, 101, 192, 0.1);
+      color: var(--accent-color);
+      border-left: 4px solid var(--accent-color);
+    }
+    
+    .mensagem.erro {
+      background-color: rgba(229, 57, 53, 0.1);
+      color: var(--error-color);
+      border-left: 4px solid var(--error-color);
+    }
+    
+    .mensagem.sucesso {
+      background-color: rgba(67, 160, 71, 0.1);
+      color: var(--success-color);
+      border-left: 4px solid var(--success-color);
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .loading-spinner {
+      border: 4px solid var(--light-bg);
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      color: var(--success-color);
+      margin-bottom: 15px;
+    }
+    
+    .empty-state h3 {
+      color: var(--text-color);
+      margin-bottom: 10px;
+    }
+  </style>
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-header-title">Produtos em Falta ou Baixa Quantidade</h1>
+    <div class="header-buttons app-header-actions">
+      <button class="btn btn-voltar nav-home-btn" onclick="voltarMenu()">Voltar ao Início</button>
+    </div>
+  </header>
+  
+  <div class="container">
+    <div id="mensagem" class="mensagem"></div>
+    
+    <div class="filtros-container">
+      <div class="filtros-grid">
+        <div class="form-group">
+          <label for="filtroStatus">Filtrar por Status</label>
+          <select id="filtroStatus">
+            <option value="todos">Todos</option>
+            <option value="critico">Crítico (Estoque Zero)</option>
+            <option value="baixo">Baixo (Abaixo do Mínimo)</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="filtroCategoria">Categoria</label>
+          <select id="filtroCategoria">
+            <option value="">Todas as categorias</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="filtroBusca">Buscar Produto</label>
+          <input type="text" id="filtroBusca" placeholder="Nome ou código...">
+        </div>
+        
+        <div class="form-group">
+          <button class="btn-atualizar" onclick="carregarProdutos()">🔄 Atualizar</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="resumo-container">
+      <div class="resumo-card">
+        <div class="resumo-icon danger">
+          <span>❌</span>
+        </div>
+        <div class="resumo-info">
+          <h3 id="totalCriticos">0</h3>
+          <p>Produtos em Falta</p>
+        </div>
+      </div>
+      
+      <div class="resumo-card">
+        <div class="resumo-icon warning">
+          <span>⚠️</span>
+        </div>
+        <div class="resumo-info">
+          <h3 id="totalBaixos">0</h3>
+          <p>Estoque Baixo</p>
+        </div>
+      </div>
+      
+      <div class="resumo-card">
+        <div class="resumo-icon info">
+          <span>📦</span>
+        </div>
+        <div class="resumo-info">
+          <h3 id="totalProdutos">0</h3>
+          <p>Total de Produtos</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tabela-container">
+      <div class="tabela-header">
+        <h2>Lista de Produtos</h2>
+        <div class="export-buttons">
+          <button class="btn-exportar" onclick="exportarParaExcel()">📊 Exportar Excel</button>
+          <button class="btn-exportar pdf" onclick="exportarParaPDF()">📄 Exportar PDF</button>
+        </div>
+      </div>
+      
+      <div id="loading" class="loading" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Carregando produtos...</p>
+      </div>
+      
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">✅</div>
+        <h3>Ótimo! Todos os estoques estão em dia</h3>
+        <p>Não há produtos em falta ou com baixa quantidade no momento.</p>
+      </div>
+      
+      <table id="tabelaProdutos" style="display: none;">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Estoque Atual</th>
+            <th>Estoque Mínimo</th>
+            <th>Unidade</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="corpoTabela">
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <script src="../scripts/estoque-baixo.js"></script>
+</body>
+</html>

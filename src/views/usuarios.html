@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerenciamento de Usuários - FarmaVida PDV</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    
+    header {
+      background-color: #333;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
+    
+    .card {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    h2 {
+      margin-top: 0;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+      color: #333;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    button {
+      padding: 10px 15px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      background-color: #45a049;
+    }
+    
+    .btn-secundario {
+      background-color: #2196F3;
+    }
+    
+    .btn-secundario:hover {
+      background-color: #1976D2;
+    }
+    
+    .btn-perigo {
+      background-color: #f44336;
+    }
+    
+    .btn-perigo:hover {
+      background-color: #d32f2f;
+    }
+    
+    .btn-voltar {
+      background-color: #555;
+    }
+    
+    .btn-voltar:hover {
+      background-color: #333;
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    th {
+      background-color: #f5f5f5;
+    }
+    
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+    
+    .acoes {
+      display: flex;
+      gap: 5px;
+    }
+    
+    .status-message {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    
+    .success {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    
+    .error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    
+    .usuario-inativo td {
+      color: #999;
+      text-decoration: line-through;
+    }
+    
+    .header-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    .btn-novo {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn-novo:hover {
+      background-color: #45a049;
+    }
+    
+    .btn-novo i {
+      font-size: 18px;
+    }
+    
+    .form-title-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    
+    #btnLimpar {
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    
+    #btnLimpar:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .header-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn-voltar-menu {
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .btn-voltar-menu:hover {
+      background-color: #1976D2;
+    }
+  </style>
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1 class="app-header-title">Gerenciamento de Usuários</h1>
+    <div class="header-buttons app-header-actions">
+      <button id="btn-voltar-menu" class="btn-voltar-menu nav-home-btn">Voltar ao Início</button>
+      <button id="btn-voltar" class="btn-voltar nav-back-btn">Voltar</button>
+    </div>
+  </header>
+  
+  <div class="status-message" id="statusMessage"></div>
+  
+  <div class="container">
+    <div class="card">
+      <div class="form-title-container">
+        <h2 id="formTitle">Novo Usuário</h2>
+        <button id="btnLimpar" class="button">Limpar Formulário</button>
+      </div>
+      <form id="usuarioForm">
+        <input type="hidden" id="usuarioId">
+        
+        <div class="form-group">
+          <label for="nome">Nome:</label>
+          <input type="text" id="nome" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">E-mail:</label>
+          <input type="email" id="email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="senha">Senha:</label>
+          <input type="password" id="senha" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="tipo">Tipo:</label>
+          <select id="tipo" required>
+            <option value="vendedor_loja">Vendedor LOJA</option>
+            <option value="vendedor_balcao">Vendedor BALCÃO</option>
+            <option value="caixa">CAIXA</option>
+            <option value="gerencia">GERÊNCIA</option>
+          </select>
+        </div>
+        
+        <div class="actions">
+          <button type="submit" id="btnSalvar" class="btn-secundario">Salvar</button>
+          <button type="button" id="btnCancelar">Cancelar</button>
+        </div>
+      </form>
+    </div>
+    
+    <div class="card">
+      <div class="header-actions">
+        <h2>Usuários Cadastrados</h2>
+        <button id="btnNovoUsuario" class="btn-novo">
+          <span class="plus-icon"></span>
+          Novo Usuário
+        </button>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Tipo</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="usuariosTableBody">
+            <!-- Os usuários serão inseridos aqui -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <script src="../utils/electronInputFixer.js"></script>
+  <script src="../scripts/usuarios.js"></script>
+  <script>
+    document.getElementById('btn-voltar-menu').addEventListener('click', function() {
+      window.location.href = 'main.html';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatórios - FarmaVida PDV</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <style>
+    :root {
+      --primary-color: #f57c00;
+      --secondary-color: #ffa726;
+      --accent-color: #1565c0;
+      --text-color: #333;
+      --light-bg: #f5f5f5;
+      --border-color: #e0e0e0;
+      --success-color: #43a047;
+      --error-color: #e53935;
+      --chart-blue: rgba(54, 162, 235, 0.7);
+      --chart-orange: rgba(255, 159, 64, 0.7);
+      --chart-green: rgba(75, 192, 192, 0.7);
+      --chart-red: rgba(255, 99, 132, 0.7);
+    }
+    
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+    }
+    
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    
+    .btn {
+      padding: 10px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      border: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    
+    .btn-voltar {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      text-decoration: none; /* Importante para links */
+      justify-content: center;
+      font-weight: 500;
+    }
+    
+    .btn-voltar:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+      color: white;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 25px;
+    }
+    
+    .filter-card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+    
+    .filter-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-top: 0;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .filter-label {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #555;
+    }
+    
+    .filter-input {
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .filter-input:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(245, 124, 0, 0.1);
+    }
+    
+    .periodo-personalizado {
+      display: none;
+    }
+    
+    .filter-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    
+    .btn-primary {
+      background-color: var(--accent-color);
+      color: white;
+      font-weight: 600;
+    }
+    
+    .btn-primary:hover {
+      background-color: #0d47a1;
+    }
+    
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .results-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin: 0;
+    }
+    
+    /* Estilo para o texto de período dinâmico */
+    .periodo-display {
+      font-size: 14px;
+      color: #666;
+      font-style: italic;
+      transition: opacity 0.3s;
+      display: inline-block;
+      max-width: 100%;
+    }
+    
+    .periodo-display.updating {
+      opacity: 0.5;
+    }
+    
+    .export-buttons {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .btn-export {
+      background-color: white;
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      padding: 8px 15px;
+    }
+    
+    .btn-export:hover {
+      border-color: var(--accent-color);
+      color: var(--accent-color);
+    }
+    
+    .export-icon {
+      font-size: 16px;
+    }
+    
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .summary-card {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+    
+    .summary-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .card-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 15px 0 10px;
+      color: var(--accent-color);
+    }
+    
+    .card-label {
+      font-size: 14px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .card-icon {
+      font-size: 28px;
+      color: var(--primary-color);
+      background-color: rgba(245, 124, 0, 0.1);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+    }
+    
+    .card-detail {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      opacity: 0.8;
+    }
+    
+    .saldo-caixa .card-icon {
+      background-color: rgba(76, 175, 80, 0.1);
+      color: #4caf50;
+    }
+    
+    .saldo-caixa .card-value {
+      color: #4caf50;
+      font-weight: 700;
+    }
+    
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .chart-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      height: 400px;
+    }
+    
+    .chart-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent-color);
+      margin-top: 0;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .chart-wrapper {
+      height: 320px;
+      position: relative;
+    }
+    
+    .chart-subtitle {
+      text-align: center;
+      font-size: 12px;
+      color: #777;
+      margin-top: 10px;
+    }
+    
+    .products-table-container {
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      overflow-x: auto;
+    }
+    
+    .products-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .products-table th, 
+    .products-table td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .products-table th {
+      background-color: #f9f9f9;
+      font-weight: 600;
+      color: var(--accent-color);
+      position: sticky;
+      top: 0;
+    }
+    
+    .products-table tr:hover {
+      background-color: #f9f9f9;
+    }
+    
+    .products-table td:last-child,
+    .products-table th:last-child {
+      text-align: right;
+    }
+    
+    .msg-container {
+      text-align: center;
+      padding: 30px;
+      color: #888;
+      font-style: italic;
+    }
+    
+    /* Adicionar estilos para melhor feedback visual */
+    .loading-pulse {
+      display: inline-block;
+      position: relative;
+      color: #aaa;
+      animation: pulse 1.4s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+    
+    /* Estilos adicionais para feedback de carregamento */
+    .loading-indicator {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      color: #666;
+      font-style: italic;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent-color);
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .error-alert {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      border-left: 4px solid #c62828;
+      animation: fadeIn 0.3s ease-out;
+    }
+    
+    .no-data-message {
+      text-align: center;
+      padding: 40px 20px;
+      color: #777;
+      font-style: italic;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+
+    @media (max-width: 900px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .cards-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+      
+      .export-buttons {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+  </style>
+  <!-- Chart.js para os gráficos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- FontAwesome para ícones -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <!-- Adicionar axios para diagnóstico de rede -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-title app-header-title">Relatórios de Vendas</div>
+    <div class="app-header-actions">
+    <!-- Substitui o botão por um link <a> mantendo a mesma aparência -->
+      <a href="main.html" id="btn-voltar" class="btn btn-voltar nav-home-btn">
+      <i class="fas fa-arrow-left"></i> Voltar ao Início
+    </a>
+    </div>
+  </header>
+  
+  <div class="container">
+    <!-- Filtros com melhor comportamento para o botão gerar -->
+    <div class="filter-card">
+      <h2 class="filter-title">Filtros</h2>
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label class="filter-label">Período</label>
+          <select id="periodo" class="filter-input">
+            <option value="7dias">Últimos 7 dias</option>
+            <option value="30dias">Últimos 30 dias</option>
+            <option value="hoje">Hoje</option>
+            <option value="ontem">Ontem</option>
+            <option value="personalizado">Período personalizado</option>
+          </select>
+        </div>
+        
+        <div class="filter-group periodo-personalizado">
+          <label class="filter-label">Data Início</label>
+          <input type="date" id="data-inicio" class="filter-input">
+        </div>
+        
+        <div class="filter-group periodo-personalizado">
+          <label class="filter-label">Data Fim</label>
+          <input type="date" id="data-fim" class="filter-input">
+        </div>
+        
+        <div class="filter-group">
+          <label class="filter-label">Vendedor</label>
+          <select id="vendedor" class="filter-input">
+            <option value="">Todos os vendedores</option>
+            <!-- Opções serão inseridas dinamicamente -->
+          </select>
+        </div>
+      </div>
+      
+      <div class="filter-actions">
+        <button id="btn-gerar" class="btn btn-primary">
+          <i class="fas fa-sync-alt"></i> Gerar Relatório
+        </button>
+      </div>
+    </div>
+    
+    <!-- Cabeçalho dos Resultados -->
+    <div class="results-header">
+      <div>
+        <h1 class="results-title">Resultados do Relatório</h1>
+        <p class="periodo-display" id="periodo-exibido">
+          <i class="fas fa-sync-alt fa-spin"></i> Carregando dados...
+        </p>
+      </div>
+      
+      <div class="export-buttons">
+        <button id="btn-pdf" class="btn btn-export">
+          <span class="export-icon">📄</span> Exportar PDF
+        </button>
+        <button id="btn-excel" class="btn btn-export">
+          <span class="export-icon">📊</span> Exportar Excel
+        </button>
+      </div>
+    </div>
+    
+    <!-- Cards de Resumo com fallbacks -->
+    <div class="cards-grid">
+      <div class="summary-card">
+        <div class="card-icon">💰</div>
+        <div class="card-value" id="total-vendas">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="card-label">Total em Vendas</div>
+      </div>
+      
+      <div class="summary-card">
+        <div class="card-icon">🛒</div>
+        <div class="card-value" id="qtd-vendas">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="card-label">Quantidade de Vendas</div>
+      </div>
+      
+      <div class="summary-card">
+        <div class="card-icon">📊</div>
+        <div class="card-value" id="ticket-medio">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="card-label">Ticket Médio</div>
+      </div>
+      
+      <div class="summary-card">
+        <div class="card-icon">📦</div>
+        <div class="card-value" id="total-itens">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="card-label">Itens Vendidos</div>
+      </div>
+      
+      <div class="summary-card saldo-caixa">
+        <div class="card-icon">🏦</div>
+        <div class="card-value" id="total-caixa">
+          <div class="loading-spinner"></div>
+        </div>
+        <div class="card-label">Total do Caixa</div>
+        <div class="card-detail" id="detail-caixa">Vendas - Retiradas</div>
+      </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="charts-grid">
+      <div class="chart-container">
+        <h3 class="chart-title">Vendas por Dia</h3>
+        <div class="chart-wrapper" id="chart-vendas-dia">
+          <!-- Gráfico será inserido aqui -->
+        </div>
+      </div>
+      
+      <div class="chart-container">
+        <h3 class="chart-title">Vendas por Método de Pagamento</h3>
+        <div class="chart-wrapper" id="chart-pagamentos">
+          <!-- Gráfico será inserido aqui -->
+        </div>
+      </div>
+    </div>
+    
+    <!-- Tabela de Produtos -->
+    <div class="products-table-container">
+      <h3 class="chart-title">Produtos Mais Vendidos</h3>
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nome</th>
+            <th>Quantidade</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="produtos-table">
+          <!-- Dados serão inseridos dinamicamente -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Tabela de Retiradas -->
+    <div class="products-table-container">
+      <h3 class="chart-title">Retiradas de Dinheiro</h3>
+      <table class="products-table">
+        <thead>
+          <tr>
+            <th>Data/Hora</th>
+            <th>Responsável</th>
+            <th>Valor</th>
+            <th>Motivo</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+        <tbody id="retiradas-table">
+          <!-- Dados serão inseridos dinamicamente -->
+        </tbody>
+      </table>
+      <div id="total-retiradas-display" style="text-align: right; margin-top: 15px; font-weight: bold; font-size: 16px;">
+        Total de Retiradas: <span id="total-retiradas">R$ 0,00</span>
+      </div>
+    </div>
+  </div>
+  
+  <script src="../scripts/relatorios.js"></script>
+</body>
+</html>

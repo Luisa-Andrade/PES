@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clientes - FarmaVida PDV</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    :root {
+      --primary-color: #f57c00;
+      --secondary-color: #ffa726;
+      --accent-color: #1565c0;
+      --text-color: #333;
+      --light-bg: #f5f5f5;
+      --border-color: #e0e0e0;
+      --success-color: #43a047;
+      --error-color: #e53935;
+    }
+    
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--light-bg);
+      color: var(--text-color);
+    }
+    
+    header {
+      background-color: var(--primary-color);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    
+    .btn {
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      border: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .btn-voltar {
+      background-color: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    
+    .btn-voltar:hover {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .container {
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .search-container {
+      display: flex;
+      gap: 10px;
+      flex-grow: 1;
+      max-width: 600px;
+    }
+    
+    .search-input {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
+    
+    .grid-layout.single-col {
+      grid-template-columns: 1fr;
+    }
+    
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      overflow: hidden;
+      height: fit-content;
+    }
+    
+    .card-header {
+      background-color: #f9f9f9;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .card-header h2 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--accent-color);
+    }
+    
+    .card-body {
+      padding: 20px;
+    }
+    
+    .clients-list {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+      .client-item {
+      padding: 12px 15px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.2s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .client-item:hover {
+      background-color: #f9f9f9;
+    }
+    
+    .client-item.active {
+      background-color: #e3f2fd;
+      border-left: 3px solid var(--accent-color);
+    }
+    
+    .client-content {
+      flex: 1;
+      cursor: pointer;
+    }
+    
+    .client-actions {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+    
+    .client-item:hover .client-actions {
+      opacity: 1;
+    }
+    
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .btn-icon:hover {
+      background-color: rgba(0, 0, 0, 0.08);
+    }
+    
+    .btn-icon.btn-edit {
+      color: var(--accent-color);
+    }
+    
+    .btn-icon.btn-delete {
+      color: var(--error-color);
+    }
+    
+    .client-name {
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+    
+    .client-details {
+      font-size: 12px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .client-type {
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 11px;
+      border-radius: 3px;
+      margin-left: 5px;
+    }
+    
+    .client-type.pf {
+      background-color: #e3f2fd;
+      color: var(--accent-color);
+    }
+    
+    .client-type.pj {
+      background-color: #e8f5e9;
+      color: var(--success-color);
+    }
+    
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 15px;
+    }
+    
+    .tab {
+      padding: 12px 15px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    
+    .tab:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .tab.active {
+      border-bottom-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+    
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .form-col {
+      flex: 1;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary-color);
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(245, 124, 0, 0.1);
+    }
+    
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    .btn-primary {
+      background-color: var(--accent-color);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background-color: #e0e0e0;
+      color: var(--text-color);
+    }
+    
+    .btn-primary:hover {
+      background-color: #0d47a1;
+    }
+      .btn-secondary:hover {
+      background-color: #ccc;
+    }
+    
+    .btn-danger {
+      background-color: var(--error-color);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #c62828;
+    }
+    
+    .btn-success {
+      background-color: var(--success-color);
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+      background-color: #388e3c;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(67, 160, 71, 0.3);
+    }
+    
+    .btn-success:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(67, 160, 71, 0.2);
+    }
+    
+    .client-detail-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .status-message {
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      display: none;
+    }
+    
+    .status-message.error {
+      background-color: #ffebee;
+      border: 1px solid #ffcdd2;
+      color: var(--error-color);
+    }
+    
+    .status-message.success {
+      background-color: #e8f5e9;
+      border: 1px solid #c8e6c9;
+      color: var(--success-color);
+    }
+
+    .status-message.processing {
+      background-color: #fff3e0;
+      border: 1px solid #ffcc02;
+      color: #f57c00;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 20px;
+      color: #888;
+      font-style: italic;
+    }
+    
+    .form-section-title {
+      font-size: 16px;
+      color: var(--accent-color);
+      font-weight: 500;
+      margin: 20px 0 15px 0;
+      padding-bottom: 5px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    /* Estilos melhorados */
+    .input-with-icon {
+      position: relative;
+      width: 100%;
+    }
+    
+    .input-with-icon input {
+      width: 100%;
+      padding-right: 30px;
+    }
+    
+    .input-icon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #888;
+      font-size: 16px;
+    }
+    
+    .input-icon.valid {
+      color: var(--success-color);
+    }
+    
+    .input-icon.invalid {
+      color: var(--error-color);
+    }
+    
+    .form-help {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .form-error {
+      font-size: 12px;
+      color: var(--error-color);
+      margin-top: 4px;
+      display: none;
+    }
+    
+    input.is-invalid {
+      border: 1px solid var(--error-color);
+    }
+    
+    input.is-valid {
+      border: 1px solid var(--success-color);
+    }
+    
+    .btn-lookup {
+      background: var(--accent-color);
+      color: white;
+      border: none;
+      padding: 2px 8px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+    }
+    
+    @keyframes spin {
+      to { transform: translateY(-50%) rotate(360deg); }
+    }
+    
+    @media (max-width: 950px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+      
+      .form-row {
+        flex-direction: column;
+        gap: 5px;
+      }
+    }
+    
+    /* Estilos para aba de crédito */
+    .credito-info {
+      padding: 15px 0;
+    }
+    
+    /* Estilos para aba de endereços */
+    .endereco-item {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-left: 3px solid var(--primary-color);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .endereco-header {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 15px;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .endereco-details {
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .endereco-actions {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    
+    .principal-tag {
+      background-color: var(--primary-color);
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 10px;
+      display: inline-block;
+    }
+    
+    .credito-status-loading {
+      text-align: center;
+      padding: 20px;
+      font-size: 16px;
+      color: #666;
+    }
+    
+    .credito-resumo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .credito-card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-color);
+    }
+    
+    .credito-card:hover {
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      transform: translateY(-2px);
+    }
+    
+    .credito-card-header {
+      background-color: #f5f5f5;
+      padding: 10px 15px;
+      font-weight: bold;
+      border-bottom: 1px solid #e0e0e0;
+      font-size: 14px;
+    }
+    
+    .credito-card-body {
+      padding: 15px;
+    }
+    
+    .credito-status {
+      font-size: 20px;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px 0;
+    }
+    
+    .status-ativo {
+      color: var(--success-color);
+      font-weight: bold;
+    }
+    
+    .status-bloqueado {
+      color: var(--error-color);
+      font-weight: bold;
+    }
+    
+    .status-analise {
+      color: #ff9800; /* laranja */
+      font-weight: bold;
+    }
+    
+    /* Estilo para quando houver valores vencidos */
+    .valor-vencido {
+      color: var(--error-color);
+      font-weight: bold;
+    }
+    
+    .credito-valor {
+      font-size: 22px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    
+    .credito-progresso {
+      margin: 15px 0;
+    }
+    
+    .credito-barra-fundo {
+      width: 100%;
+      height: 10px;
+      background-color: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    
+    .credito-barra-preenchido {
+      height: 100%;
+      background-color: var(--success-color);
+      width: 0;
+      transition: width 0.5s ease-in-out;
+    }
+    
+    .credito-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    
+    .fiado-resumo {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .fiado-item {
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+    
+    .fiado-item-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 5px;
+    }
+    
+    .fiado-item-value {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    .historico-fiado {
+      text-align: center;
+      padding: 15px;
+    }
+    
+    .credito-erro {
+      background-color: #ffebee;
+      border: 1px solid #ffcdd2;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    
+    .credito-erro i {
+      color: var(--error-color);
+      font-size: 24px;
+    }
+    
+    .historico-registro {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-left: 4px solid #ccc;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .historico-registro:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transform: translateY(-3px);
+      border-left-width: 5px;
+    }
+    
+    .historico-registro.tipo-compra {
+      border-left-color: #c62828;
+    }
+    
+    .historico-registro.tipo-pagamento {
+      border-left-color: #2e7d32;
+    }
+    
+    .historico-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .historico-tipo {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .historico-tipo::before {
+      font-family: 'Font Awesome 5 Free';
+      font-weight: 900;
+    }
+    
+    .historico-tipo.compra_fiado {
+      background: linear-gradient(135deg, #ffebee, #ffcdd2);
+      color: #c62828;
+      border: 1px solid #ef9a9a;
+    }
+    
+    .historico-tipo.compra_fiado::before {
+      content: '\f07a';
+    }
+    
+    .historico-tipo.pagamento {
+      background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+      color: #2e7d32;
+      border: 1px solid #a5d6a7;
+    }
+    
+    .historico-tipo.pagamento::before {
+      content: '\f0d6';
+    }
+    
+    .historico-tipo.pagamento::before {
+      content: '\f0d6';
+    }
+    
+    .historico-data {
+      color: #888;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    
+    .historico-data::before {
+      content: '🕒';
+      font-size: 14px;
+    }
+    
+    .historico-descricao {
+      font-size: 15px;
+      margin-bottom: 12px;
+      color: #333;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    
+    .historico-valores {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      font-size: 13px;
+      background: #f8f9fa;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    
+    .historico-valor-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .historico-valor-item strong {
+      color: #666;
+      font-weight: 600;
+    }
+    
+    .valor-positivo {
+      color: #2e7d32;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    .valor-negativo {
+      color: #c62828;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    
+    /* Estilos do Modal de Histórico */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 900px;
+      width: 90%;
+      max-height: 85vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: slideIn 0.4s ease-out;
+    }
+    
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      color: white;
+      padding: 20px 25px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+    }
+    
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .modal-header h2::before {
+      content: '📋';
+      font-size: 1.3rem;
+    }
+    
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      font-size: 28px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      line-height: 1;
+      padding: 0;
+    }
+    
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: rotate(90deg);
+    }
+    
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 25px;
+      background: #fafafa;
+    }
+    
+    .modal-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .modal-body::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb {
+      background: #ccc;
+      border-radius: 4px;
+    }
+    
+    .modal-body::-webkit-scrollbar-thumb:hover {
+      background: #999;
+    }
+    
+    .modal-footer {
+      padding: 15px 25px;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .credito-resumo,
+      .fiado-resumo {
+        grid-template-columns: 1fr;
+      }
+      
+      .modal-content {
+        width: 95%;
+        max-height: 90vh;
+      }
+      
+      .modal-header h2 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-title">Gerenciar Clientes</div>
+    <div class="app-header-actions"><button class="btn btn-voltar nav-home-btn" id="btnVoltar">Voltar ao Início</button></div>
+  </header>
+  
+  <div class="container">
+    <div id="statusMessage" class="status-message" style="display: none;"></div>
+    
+    <div class="top-bar">
+      <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nome, CPF/CNPJ ou telefone...">
+        <button id="btnSearch" class="btn btn-primary">
+          <i class="fas fa-search"></i>
+          Buscar
+        </button>
+      </div>
+      <button id="btnNovoCliente" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Novo Cliente
+      </button>
+    </div>
+    
+    <div class="grid-layout">
+      <div class="card">
+        <div class="card-header">
+          <h2>Lista de Clientes</h2>
+        </div>
+        <div class="card-body">
+          <div id="clientesList" class="clients-list">
+            <div class="no-data">Carregando clientes...</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" id="clienteFormCard">        <div class="card-header">
+          <h2 id="detailsTitle">Detalhes do Cliente</h2>
+          <div class="client-detail-actions" id="clientDetailActions">
+            <button type="button" id="btnExcluirClienteAtual" class="btn btn-danger">
+              <i class="fas fa-trash"></i> Excluir
+            </button>
+          </div>
+        </div><div class="card-body">
+          <div class="tabs" id="detailsTabs">
+            <div class="tab active" data-tab="info">Informações</div>
+            <div class="tab" data-tab="endereco">Endereços</div>
+            <div class="tab" data-tab="credito">Crédito</div>
+          </div>
+          
+          <!-- Aba de Informações -->
+          <div id="tabInfo" class="tab-content active">
+            <form id="clienteForm" novalidate>
+              <input type="hidden" id="clienteId">
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="nome">Nome: <span class="required">*</span></label>
+                    <input type="text" id="nome" required placeholder="Nome completo" autocomplete="name">
+                    <div class="form-error" id="nomeError">Nome é obrigatório</div>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="tipo">Tipo: <span class="required">*</span></label>
+                    <select id="tipo" required onchange="alternarTipoPessoa()">
+                      <option value="pessoa_fisica">Pessoa Física</option>
+                      <option value="pessoa_juridica">Pessoa Jurídica</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="cpfCnpj"><span id="labelCpfCnpj">CPF</span>:</label>
+                    <div class="input-with-icon">
+                      <input type="text" id="cpfCnpj" placeholder="CPF" maxlength="18">
+                      <div class="loading-spinner" id="cpfCnpjSpinner"></div>
+                      <i class="input-icon fas fa-check-circle" id="cpfCnpjIcon" style="display: none;"></i>
+                    </div>
+                    <div class="form-error" id="cpfCnpjError">CPF/CNPJ inválido</div>
+                    <div class="form-help" id="cpfCnpjHelp">Formato: 123.456.789-00</div>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="dataNascimento"><span id="labelDataNascimento">Data de Nascimento</span>:</label>
+                    <input type="date" id="dataNascimento">
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="telefone">Telefone:</label>
+                    <div class="input-with-icon">
+                      <input type="tel" id="telefone" placeholder="(00) 0000-0000" maxlength="15">
+                    </div>
+                    <div class="form-help">Formato: (00) 0000-0000</div>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="celular">Celular:</label>
+                    <div class="input-with-icon">
+                      <input type="tel" id="celular" placeholder="(00) 00000-0000" maxlength="15">
+                    </div>
+                    <div class="form-help">Formato: (00) 00000-0000</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="email">E-mail:</label>
+                <div class="input-with-icon">
+                  <input type="email" id="email" placeholder="E-mail" autocomplete="email">
+                  <i class="input-icon fas fa-check-circle" id="emailIcon" style="display: none;"></i>
+                </div>
+                <div class="form-error" id="emailError">E-mail inválido</div>
+              </div>
+              
+              <div class="form-section-title">Crédito</div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="limiteCredito">Limite de Crédito:</label>
+                    <div class="input-with-icon">
+                      <input type="text" id="limiteCredito" placeholder="0,00" 
+                             oninput="formatarValor(this)" data-type="currency">
+                    </div>
+                    <div class="form-help">Informe o valor sem R$</div>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="statusCredito">Status do Crédito:</label>
+                    <select id="statusCredito">
+                      <option value="analise">Em Análise</option>
+                      <option value="ativo">Ativo</option>
+                      <option value="bloqueado">Bloqueado</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="observacoes">Observações:</label>
+                <textarea id="observacoes" rows="3" placeholder="Observações sobre o cliente"></textarea>
+              </div>
+              
+              <div class="actions">
+                <button type="button" id="btnCancelar" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" id="btnSalvar" class="btn btn-primary">Salvar</button>
+              </div>
+            </form>          </div>          <!-- Aba de Endereços -->
+          <div id="tabEndereco" class="tab-content">
+            <div id="enderecosList">
+              <!-- Endereços serão inseridos aqui -->
+              <div class="no-data">Nenhum endereço cadastrado</div>
+            </div>
+            
+            <div class="form-section-title">Adicionar Novo Endereço</div>
+            
+            <form id="enderecoForm">
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="cep">CEP:</label>
+                    <div class="input-with-icon">
+                      <input type="text" id="cep" placeholder="00000-000" maxlength="9">
+                      <div class="loading-spinner" id="cepSpinner"></div>
+                    </div>
+                    <button type="button" id="btnBuscarCep" class="btn-lookup">Buscar</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="logradouro">Logradouro:</label>
+                    <input type="text" id="logradouro" placeholder="Rua, Avenida, etc.">
+                    <div class="form-error" id="logradouroError">Logradouro é obrigatório</div>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="numero">Número:</label>
+                    <input type="text" id="numero" placeholder="Número">
+                    <div class="form-error" id="numeroError">Número é obrigatório</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="complemento">Complemento:</label>
+                    <input type="text" id="complemento" placeholder="Apartamento, sala, etc.">
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="bairro">Bairro:</label>
+                    <input type="text" id="bairro" placeholder="Bairro">
+                    <div class="form-error" id="bairroError">Bairro é obrigatório</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="cidade">Cidade:</label>
+                    <input type="text" id="cidade" placeholder="Cidade">
+                    <div class="form-error" id="cidadeError">Cidade é obrigatória</div>
+                  </div>
+                </div>
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="estado">Estado:</label>
+                    <select id="estado">
+                      <option value="">Selecione</option>
+                      <option value="AC">Acre</option>
+                      <option value="AL">Alagoas</option>
+                      <option value="AP">Amapá</option>
+                      <option value="AM">Amazonas</option>
+                      <option value="BA">Bahia</option>
+                      <option value="CE">Ceará</option>
+                      <option value="DF">Distrito Federal</option>
+                      <option value="ES">Espírito Santo</option>
+                      <option value="GO">Goiás</option>
+                      <option value="MA">Maranhão</option>
+                      <option value="MT">Mato Grosso</option>
+                      <option value="MS">Mato Grosso do Sul</option>
+                      <option value="MG">Minas Gerais</option>
+                      <option value="PA">Pará</option>
+                      <option value="PB">Paraíba</option>
+                      <option value="PR">Paraná</option>
+                      <option value="PE">Pernambuco</option>
+                      <option value="PI">Piauí</option>
+                      <option value="RJ">Rio de Janeiro</option>
+                      <option value="RN">Rio Grande do Norte</option>
+                      <option value="RS">Rio Grande do Sul</option>
+                      <option value="RO">Rondônia</option>
+                      <option value="RR">Roraima</option>
+                      <option value="SC">Santa Catarina</option>
+                      <option value="SP">São Paulo</option>
+                      <option value="SE">Sergipe</option>
+                      <option value="TO">Tocantins</option>
+                    </select>
+                    <div class="form-error" id="estadoError">Estado é obrigatório</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="form-row">
+                <div class="form-col">
+                  <div class="form-group">
+                    <label for="endPrincipal">Endereço Principal:</label>
+                    <select id="endPrincipal">
+                      <option value="true">Sim</option>
+                      <option value="false">Não</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-col"></div>
+              </div>
+
+              <div class="actions">
+                <button type="button" id="btnCancelarEndereco" class="btn btn-secondary">Cancelar</button>
+                <button type="submit" id="btnSalvarEndereco" class="btn btn-primary">Adicionar</button>
+              </div>            </form>
+          </div>
+          
+          <!-- Aba de Crédito -->
+          <div id="tabCredito" class="tab-content">
+            <div id="creditoInfo" class="credito-info">
+              <div class="credito-status-loading">
+                <div class="loading-spinner" id="creditoSpinner" style="position: static; display: inline-block; margin-right: 10px;"></div>
+                Carregando informações de crédito...
+              </div>
+              
+              <div id="creditoDetalheContent" style="display:none;">
+                <div class="credito-resumo">
+                  <div class="credito-card">
+                    <div class="credito-card-header">Situação de Crédito</div>
+                    <div class="credito-card-body">
+                      <div class="credito-status">
+                        <span id="statusCreditoValue">Não definido</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="credito-card">
+                    <div class="credito-card-header">Limite de Crédito</div>
+                    <div class="credito-card-body">
+                      <div class="credito-valor">
+                        R$ <span id="limiteCreditoValue">0,00</span>
+                      </div>
+                      <div class="credito-progresso">
+                        <div class="credito-barra-fundo">
+                          <div class="credito-barra-preenchido" id="creditoBarraPreenchido"></div>
+                        </div>
+                      </div>
+                      <div class="credito-labels">
+                        <div>Utilizado: R$ <span id="saldoDevedorValue">0,00</span></div>
+                        <div>Crédito Extra: R$ <span id="creditoAdicionalValue">0,00</span></div>
+                        <div>Disponível: R$ <span id="creditoDisponivelValue">0,00</span></div>
+                      </div>
+                      <div style="margin-top: 15px; text-align: center; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button id="btnPagouCredito" class="btn btn-success" style="padding: 8px 20px;">
+                          <i class="fas fa-check-circle"></i> Pagou
+                        </button>
+                        <button id="btnAdicionarCredito" class="btn btn-primary" style="padding: 8px 20px;" title="Adicionar crédito extra (devolução, ajuste)">
+                          <i class="fas fa-plus-circle"></i> Adicionar Crédito
+                        </button>
+                        <button id="btnSincronizarDados" class="btn btn-secondary" style="padding: 8px 20px;" title="Sincronizar dados se houver inconsistências">
+                          <i class="fas fa-sync-alt"></i> Sincronizar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-section-title">Fiado</div>
+                <div class="fiado-resumo">
+                  <div class="fiado-item">
+                    <div class="fiado-item-label">Vendas pendentes:</div>
+                    <div class="fiado-item-value" id="vendasPendentesValue">0</div>
+                  </div>
+                  <div class="fiado-item">
+                    <div class="fiado-item-label">Vendas vencidas:</div>
+                    <div class="fiado-item-value" id="vendasVencidasValue">0</div>
+                  </div>
+                  <div class="fiado-item">
+                    <div class="fiado-item-label">Valor vencido:</div>
+                    <div class="fiado-item-value">R$ <span id="valorVencidoValue">0,00</span></div>
+                  </div>
+                </div>
+                
+                <div class="form-section-title">Histórico</div>
+                <div id="historicoFiado" class="historico-fiado">
+                  <button id="btnVerDetalhesHistorico" class="btn btn-primary">
+                    <i class="fas fa-list"></i>
+                    Ver Histórico Completo
+                  </button>
+                </div>
+              </div>
+              
+              <div id="creditoErro" style="display:none;">
+                <div class="credito-erro">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  Não foi possível carregar informações de crédito.
+                  <button id="btnRecarregarCredito" class="btn btn-primary">
+                    <i class="fas fa-sync"></i>
+                    Tentar Novamente
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal de Histórico de Crédito -->
+  <div id="historicoModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Histórico Completo de Crédito</h2>
+        <button class="close-btn" id="btnFecharHistorico">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="historicoClienteInfo" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+          <h3 id="historicoClienteNome" style="margin: 0 0 15px 0; color: var(--primary-color); font-size: 1.3rem;"></h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="padding: 10px; background: #f0f7ff; border-radius: 8px;">
+              <strong style="color: #666; font-size: 13px; display: block; margin-bottom: 5px;">Limite de Crédito</strong>
+              <span style="font-size: 18px; color: #1976d2; font-weight: 600;">R$ <span id="historicoLimiteCredito">0,00</span></span>
+            </div>
+            <div style="padding: 10px; background: #fff3e0; border-radius: 8px;">
+              <strong style="color: #666; font-size: 13px; display: block; margin-bottom: 5px;">Saldo Devedor</strong>
+              <span style="font-size: 18px; color: #f57c00; font-weight: 600;">R$ <span id="historicoSaldoDevedor">0,00</span></span>
+            </div>
+            <div style="padding: 10px; background: #e8f5e9; border-radius: 8px;">
+              <strong style="color: #666; font-size: 13px; display: block; margin-bottom: 5px;">Status</strong>
+              <span id="historicoStatusCredito" style="font-size: 16px; font-weight: 600; text-transform: uppercase;"></span>
+            </div>
+          </div>
+        </div>
+        
+        <div id="historicoTotais" style="margin-bottom: 20px; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+          <h4 style="margin: 0 0 15px 0; color: var(--primary-color); font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-chart-bar"></i> Resumo de Transações
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="padding: 10px; background: #ffebee; border-radius: 8px;">
+              <strong style="color: #666; font-size: 13px; display: block; margin-bottom: 5px;">Total em Compras</strong>
+              <span style="font-size: 18px; color: #c62828; font-weight: 600;">R$ <span id="totalCompras">0,00</span></span>
+              <div style="font-size: 12px; color: #999; margin-top: 4px;"><span id="quantidadeCompras">0</span> transações</div>
+            </div>
+            <div style="padding: 10px; background: #e8f5e9; border-radius: 8px;">
+              <strong style="color: #666; font-size: 13px; display: block; margin-bottom: 5px;">Total em Pagamentos</strong>
+              <span style="font-size: 18px; color: #2e7d32; font-weight: 600;">R$ <span id="totalPagamentos">0,00</span></span>
+              <div style="font-size: 12px; color: #999; margin-top: 4px;"><span id="quantidadePagamentos">0</span> transações</div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="historicoListaContainer">
+          <div class="loading-spinner" id="historicoSpinner" style="display:none; position: static; margin: 20px auto;"></div>
+          <div id="historicoLista"></div>
+          <div id="historicoVazio" style="display:none; text-align: center; padding: 60px 20px; color: #999; background: white; border-radius: 12px;">
+            <i class="fas fa-inbox" style="font-size: 64px; margin-bottom: 15px; color: #ddd;"></i>
+            <p style="font-size: 16px; margin: 0;">Nenhum registro encontrado no histórico</p>
+            <p style="font-size: 14px; margin: 10px 0 0 0; color: #bbb;">Realize transações para começar o histórico</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnFecharHistoricoFooter">
+          <i class="fas fa-times"></i> Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Adicionar Crédito Extra -->
+  <div id="modalCreditoExtra" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2><i class="fas fa-plus-circle"></i> Adicionar Crédito Extra</h2>
+        <button class="close-btn" id="btnFecharModalCredito">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 20px; color: #666;">
+          Cliente: <strong id="modalClienteNome"></strong>
+        </p>
+        
+        <div class="form-group">
+          <label for="modalValorCredito">Valor do Crédito: *</label>
+          <input type="text" id="modalValorCredito" placeholder="0,00" class="form-control" 
+                 style="font-size: 18px; font-weight: bold; text-align: right;">
+          <small style="color: #999;">Digite o valor a ser adicionado (ex: 50,00)</small>
+        </div>
+        
+        <div class="form-group">
+          <label for="modalObservacao">Observação:</label>
+          <textarea id="modalObservacao" rows="3" placeholder="Ex: Devolução produto, Ajuste, etc." 
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarCredito">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button class="btn btn-success" id="btnConfirmarCredito">
+          <i class="fas fa-check"></i> Adicionar Crédito
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- CSS Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Scripts de manipulação de clientes -->
+  <script src="../utils/electronInputFixer.js"></script>
+  <script src="../scripts/clientes.js"></script>
+  <script src="../scripts/clientes-app.js"></script>
+</body>
+</html>

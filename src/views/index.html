@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+  <title>FarmaVida PDV</title>
+  <link rel="stylesheet" href="../styles/main.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>FarmaVida PDV</h1>
+      <div id="user-info"></div>
+    </header>
+    
+    <main>
+      <div class="card-container">
+        <div class="card" id="btn-vendas">
+          <h2>Vendas</h2>
+          <p>Registrar novas vendas</p>
+          <span class="icon">💰</span>
+        </div>
+        
+        <div class="card" id="btn-produtos">
+          <h2>Produtos</h2>
+          <p>Gerenciar catálogo</p>
+          <span class="icon">📦</span>
+        </div>
+        
+        <div class="card" id="btn-relatorios">
+          <h2>Relatórios</h2>
+          <p>Visualizar relatórios</p>
+          <span class="icon">📊</span>
+        </div>
+      </div>
+    </main>
+    
+    <footer>
+      <p>FarmaVida PDV v<span id="app-version"></span></p>
+    </footer>
+  </div>
+  
+  <script src="../scripts/index.js"></script>
+</body>
+</html>

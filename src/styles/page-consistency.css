@@ -1,0 +1,186 @@
+/* Padrões discretos compartilhados entre as telas internas. */
+.app-header {
+  min-height: 86px;
+  padding: 16px 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  color: #fff !important;
+}
+
+.app-header-title,
+.app-header-title h1 {
+  margin: 0 !important;
+  color: #fff !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+}
+
+.app-header-title small,
+.app-header-title p {
+  display: block;
+  margin: 3px 0 0 !important;
+  color: rgba(255, 255, 255, .88) !important;
+  font-size: .82rem !important;
+  font-weight: 400 !important;
+}
+
+.app-header-actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  flex-wrap: wrap;
+}
+
+.app-header-actions > span { color: #fff; }
+
+/* Mesmos estados e cores para ações comuns, sem alterar a estrutura das páginas. */
+button.btn-primary, .btn-primary, button.action-btn, .app-primary-btn {
+  background: var(--primary-color) !important;
+  color: #fff !important;
+  border: 1px solid var(--primary-color) !important;
+}
+
+button.btn-primary:hover, .btn-primary:hover, button.action-btn:hover, .app-primary-btn:hover {
+  background: #066b4d !important;
+  border-color: #066b4d !important;
+}
+
+.btn-secondary, .app-secondary-btn {
+  background: #fff !important;
+  color: #075f47 !important;
+  border: 1px solid #b9ddd1 !important;
+}
+
+.btn-secondary:hover, .app-secondary-btn:hover { background: #eaf7f2 !important; }
+
+.btn-success {
+  background: var(--success-color) !important;
+  color: #fff !important;
+}
+
+.btn-danger {
+  background: var(--error-color) !important;
+  color: #fff !important;
+}
+
+.card-header h2 { color: var(--accent-color) !important; }
+.tab.active { color: var(--primary-color) !important; border-bottom-color: var(--primary-color) !important; }
+
+.app-header .nav-home-btn,
+.app-header .nav-back-btn { flex-shrink: 0; }
+
+/* PDV: pré-vendas com campos alinhados e ações agrupadas por finalidade. */
+.pre-sale-panel { grid-column: 1 / -1; }
+.pre-sale-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 16px 20px 13px;
+  border-bottom: 1px solid var(--border-color);
+}
+.pre-sale-heading h2 { margin: 0; color: var(--accent-color); font-size: 18px; }
+.pre-sale-heading span { color: #61756e; font-size: 13px; }
+.pre-sale-actions { padding: 17px 20px 15px; }
+.pre-sale-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; }
+.pre-sale-field { min-width: 0; }
+.pre-sale-field label { display: block; margin-bottom: 7px; color: #34584c; font-size: 13px; font-weight: 600; }
+.pre-sale-inline { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
+.pre-sale-inline input, .pre-sale-inline select {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  background: #fff;
+}
+.pre-sale-inline input { text-transform: uppercase; }
+.pre-sale-actions button {
+  min-height: 42px;
+  padding: 9px 15px;
+  border: 1px solid var(--primary-color);
+  border-radius: 9px;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.pre-sale-actions button:not(:disabled):hover { background: #066b4d; }
+.pre-sale-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 16px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border-color);
+}
+.pre-sale-status { flex: 1 1 300px; margin: 0; color: #536d62; font-size: 13px; line-height: 1.4; }
+.pre-sale-footer-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+#savePreSaleBtn { background: var(--primary-color); color: #fff; }
+#cancelPreSaleBtn {
+  background: #fff !important;
+  color: #b23a4f !important;
+  border: 1px solid #e7b8c2 !important;
+}
+#cancelPreSaleBtn[hidden] { display: none !important; }
+#cancelPreSaleBtn:hover { background: #fff1f3 !important; }
+/* Busca de produtos legível em janelas estreitas. */
+.search-section { flex-wrap: wrap; }
+.search-section #productSearchInput { flex: 1 1 220px; min-width: 180px; }
+.search-section .barcode-btn {
+  min-height: 42px;
+  justify-content: center;
+  white-space: nowrap;
+  font-weight: 600;
+}
+#barcodeBtn { background: var(--primary-color) !important; color: #fff !important; }
+#barcodeBtn:hover { background: #066b4d !important; }
+#barcodeReaderBtn {
+  background: #fff !important;
+  color: #075f47 !important;
+  border: 1px solid #b9ddd1 !important;
+}
+#barcodeReaderBtn:hover { background: #eaf7f2 !important; }
+.search-help { margin: -5px 0 16px; color: #60756e; font-size: 12px; line-height: 1.4; }
+.product-search-item:hover { background: #eaf7f2 !important; }
+.cart-panel {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  height: min(calc(100vh - 366px), 760px);
+  min-height: 0;
+}
+.cart-panel #cart-container { height: auto; flex: 1 1 auto; min-height: 0; }
+.cart-panel #cart-items { min-height: 0; }
+.pay-btn { background: var(--primary-color) !important; }
+.pay-btn:hover { background: #066b4d !important; }
+
+@media (max-width: 900px) {
+  .cart-panel { position: static; height: auto; max-height: none; }
+  .cart-panel #cart-container { height: auto; max-height: 400px; }
+}
+
+@media (max-width: 640px) {
+  .app-header { align-items: flex-start !important; flex-direction: column; }
+  .app-header-actions { width: 100%; justify-content: flex-start !important; }
+  .pre-sale-fields { grid-template-columns: 1fr; }
+  .pre-sale-footer { align-items: stretch; flex-direction: column; }
+  .pre-sale-status { flex-basis: auto; }
+  .pre-sale-footer-actions { justify-content: flex-start; }
+}
+
+@media (max-width: 420px) {
+  .pre-sale-inline { flex-wrap: wrap; }
+  .pre-sale-inline button { width: 100%; }
+}

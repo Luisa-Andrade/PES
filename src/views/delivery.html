@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FarmaVida - Pedidos Delivery</title>
+  <link rel="stylesheet" href="../styles/pharmacy-theme.css">
+  <link rel="stylesheet" href="../styles/page-consistency.css">
+  <link rel="stylesheet" href="../styles/delivery.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-title">Delivery / Motoboy</div>
+    <div class="app-header-actions"><button class="btn btn-voltar nav-home-btn" id="backBtn">Voltar ao Início</button></div>
+  </header>
+  <main class="container">
+    <div id="message" class="message" role="alert"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="newOrder">Novo Pedido</button>
+      <button class="tab" data-tab="orders">Pedidos</button>
+    </div>
+
+    <section id="newOrder" class="tab-panel active">
+      <div class="grid">
+        <div>
+          <div class="card">
+            <div class="card-header"><h2>Cliente e endereço de entrega</h2></div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="field full">
+                  <label for="clientSearch">Cliente *</label>
+                  <input id="clientSearch" autocomplete="off" placeholder="Buscar por nome, CPF ou telefone">
+                  <div id="clientSuggestions" class="suggestions"></div>
+                  <div id="selectedClient" class="selected-info"></div>
+                </div>
+                <div class="field cep-field">
+                  <label for="cep">CEP *</label>
+                  <input id="cep" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="00000-000" aria-describedby="cepStatus">
+                  <small id="cepStatus" class="field-help" role="status">Digite o CEP para preencher o endereço automaticamente.</small>
+                </div>
+                <div class="field address-field"><label for="logradouro">Endereço *</label><input id="logradouro" autocomplete="address-line1"></div>
+                <div class="field number-field"><label for="numero">Número *</label><input id="numero" autocomplete="address-line2"></div>
+                <div class="field complement-field"><label for="complemento">Complemento</label><input id="complemento"></div>
+                <div class="field neighborhood-field"><label for="bairro">Bairro *</label><input id="bairro" autocomplete="address-level3"></div>
+                <div class="field city-field"><label for="cidade">Cidade *</label><input id="cidade" autocomplete="address-level2"></div>
+                <div class="field state-field"><label for="estado">UF *</label><input id="estado" maxlength="2" autocomplete="address-level1"></div>
+                <div class="field phone-field"><label for="telefone">Telefone</label><input id="telefone" autocomplete="tel"></div>
+                <div class="field reference-field"><label for="referencia">Referência</label><input id="referencia"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h2>Produtos</h2></div>
+            <div class="card-body">
+              <div class="product-row">
+                <div class="field">
+                  <label for="productSearch">Produto</label>
+                  <input id="productSearch" autocomplete="off" placeholder="Nome, código, código de barras ou descrição">
+                  <div id="productSuggestions" class="suggestions"></div>
+                </div>
+                <div><label for="productQuantity">Quantidade</label><input id="productQuantity" type="number" min="0.01" step="0.01" value="1"></div>
+                <button class="btn btn-secondary" id="addProductBtn" type="button" disabled>Adicionar</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Produto</th><th>Quantidade</th><th>Valor unitário</th><th>Subtotal</th><th>Remover</th></tr></thead>
+                  <tbody id="itemsBody"><tr><td colspan="5" class="empty">Nenhum produto adicionado.</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside>
+          <div class="card">
+            <div class="card-header"><h2>Resumo financeiro</h2></div>
+            <div class="card-body">
+              <div class="summary-row"><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
+              <div class="summary-row"><span>Distância</span><strong id="distance">—</strong></div>
+              <div class="summary-row"><span>Taxa de entrega</span><strong id="deliveryFee">—</strong></div>
+              <div class="summary-row summary-total"><span>Total</span><span id="total">R$ 0,00</span></div>
+              <button class="btn btn-secondary" id="calculateBtn" type="button">Calcular entrega</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h2>Pagamento e entrega</h2></div>
+            <div class="card-body">
+              <div class="field full"><label for="payment">Forma de pagamento *</label><select id="payment"><option value="">Selecione</option><option value="dinheiro">Dinheiro</option><option value="pix">PIX</option><option value="cartao_credito">Cartão de crédito</option><option value="cartao_debito">Cartão de débito</option><option value="fiado">Fiado</option></select></div>
+              <div class="field full" id="changeField" hidden><label for="changeFor">Troco para</label><input id="changeFor" type="number" min="0" step="0.01"></div>
+              <div class="field full"><label for="motoboy">Motoboy</label><input id="motoboy"></div>
+              <div class="field full"><label for="notes">Observações</label><textarea id="notes" rows="4"></textarea></div>
+              <div class="actions"><button class="btn btn-primary" id="submitOrderBtn">Confirmar pedido</button><button class="btn btn-light" id="clearBtn" type="button">Limpar</button></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="orders" class="tab-panel">
+      <div class="card">
+        <div class="card-header"><h2>Pedidos realizados</h2></div>
+        <div class="card-body">
+          <div class="filters">
+            <div><label for="filterNumber">Pedido</label><input id="filterNumber"></div>
+            <div><label for="filterClient">Cliente</label><input id="filterClient"></div>
+            <div><label for="filterDate">Data</label><input id="filterDate" type="date"></div>
+            <div><label for="filterStatus">Status</label><select id="filterStatus"><option value="">Todos</option><option>NOVO</option><option>PREPARANDO</option><option>PRONTO_PARA_ENTREGA</option><option>SAIU_PARA_ENTREGA</option><option>ENTREGUE</option><option>CANCELADO</option></select></div>
+            <div><label for="filterCourier">Motoboy</label><input id="filterCourier"></div>
+          </div>
+          <div class="actions"><button class="btn btn-secondary" id="filterBtn">Filtrar</button><button class="btn btn-light" id="resetFiltersBtn">Limpar filtros</button></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Pedido</th><th>Cliente</th><th>Data/Hora</th><th>Valor</th><th>Distância</th><th>Motoboy</th><th>Status</th><th>Ações</th></tr></thead><tbody id="ordersBody"><tr><td colspan="8" class="empty">Carregando pedidos...</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="detailsModal" role="dialog" aria-modal="true">
+    <div class="modal-content"><div class="modal-header"><h2>Detalhes do pedido</h2><button class="close" id="closeModal" aria-label="Fechar">&times;</button></div><div class="modal-body" id="detailsBody"></div></div>
+  </div>
+  <script src="../scripts/delivery.js"></script>
+</body>
+</html>
