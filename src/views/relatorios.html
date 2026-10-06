@@ -432,15 +432,10 @@
       }
     }
   </style>
-  <!-- Chart.js para os gráficos -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- FontAwesome para ícones -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-  <!-- Adicionar axios para diagnóstico de rede -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="../styles/page-consistency.css">
+  <link rel="stylesheet" href="../styles/relatorios.css">
 </head>
-<body>
+<body class="relatorios-page">
   <header class="app-header">
     <div class="header-title app-header-title">Relatórios de Vendas</div>
     <div class="app-header-actions">
@@ -452,12 +447,13 @@
   </header>
   
   <div class="container">
+    <div class="page-intro"><span class="page-kicker">GESTÃO</span><h1>Relatórios de vendas</h1><p>Consulte resultados, pagamentos, produtos e movimentos do caixa.</p></div>
     <!-- Filtros com melhor comportamento para o botão gerar -->
     <div class="filter-card">
       <h2 class="filter-title">Filtros</h2>
       <div class="filters-grid">
         <div class="filter-group">
-          <label class="filter-label">Período</label>
+          <label class="filter-label" for="periodo">Período</label>
           <select id="periodo" class="filter-input">
             <option value="7dias">Últimos 7 dias</option>
             <option value="30dias">Últimos 30 dias</option>
@@ -468,17 +464,17 @@
         </div>
         
         <div class="filter-group periodo-personalizado">
-          <label class="filter-label">Data Início</label>
+          <label class="filter-label" for="data-inicio">Data início</label>
           <input type="date" id="data-inicio" class="filter-input">
         </div>
         
         <div class="filter-group periodo-personalizado">
-          <label class="filter-label">Data Fim</label>
+          <label class="filter-label" for="data-fim">Data fim</label>
           <input type="date" id="data-fim" class="filter-input">
         </div>
         
         <div class="filter-group">
-          <label class="filter-label">Vendedor</label>
+          <label class="filter-label" for="vendedor">Vendedor</label>
           <select id="vendedor" class="filter-input">
             <option value="">Todos os vendedores</option>
             <!-- Opções serão inseridas dinamicamente -->
@@ -503,16 +499,16 @@
       </div>
       
       <div class="export-buttons">
-        <button id="btn-pdf" class="btn btn-export">
+        <button id="btn-pdf" class="btn btn-export" disabled>
           <span class="export-icon">📄</span> Exportar PDF
         </button>
-        <button id="btn-excel" class="btn btn-export">
+        <button id="btn-excel" class="btn btn-export" disabled>
           <span class="export-icon">📊</span> Exportar Excel
         </button>
       </div>
     </div>
     
-    <!-- Cards de Resumo com fallbacks -->
+    <!-- Resumo -->
     <div class="cards-grid">
       <div class="summary-card">
         <div class="card-icon">💰</div>
@@ -551,8 +547,8 @@
         <div class="card-value" id="total-caixa">
           <div class="loading-spinner"></div>
         </div>
-        <div class="card-label">Total do Caixa</div>
-        <div class="card-detail" id="detail-caixa">Vendas - Retiradas</div>
+        <div class="card-label">Saldo em dinheiro no período</div>
+        <div class="card-detail" id="detail-caixa">Entradas de dinheiro − retiradas</div>
       </div>
     </div>
     

@@ -1,6 +1,7 @@
 // Variáveis globais
 let produtosFiltrados = [];
 let todosProdutos = [];
+const escapeHtml = valor => String(valor ?? '').replace(/[&<>"']/g, caractere => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[caractere]));
 
 // Função para mostrar mensagem
 function mostrarMensagem(mensagem, tipo = 'info') {
@@ -60,6 +61,7 @@ async function carregarCategorias() {
 async function carregarProdutos() {
   try {
     mostrarLoading(true);
+    document.getElementById('atualizarBtn').disabled = true;
     
     // Buscar produtos com estoque baixo ou zero
     const produtos = await window.produtosAPI.getProdutos();
@@ -72,11 +74,12 @@ async function carregarProdutos() {
     // Aplicar filtros
     aplicarFiltros();
     
-    mostrarLoading(false);
   } catch (erro) {
     console.error('Erro ao carregar produtos:', erro);
     mostrarMensagem('Erro ao carregar produtos. Tente novamente.', 'erro');
+  } finally {
     mostrarLoading(false);
+    document.getElementById('atualizarBtn').disabled = false;
   }
 }
 
@@ -100,8 +103,8 @@ function aplicarFiltros() {
     
     // Filtro de busca
     const passaBusca = !filtroBusca || 
-      produto.nome.toLowerCase().includes(filtroBusca) ||
-      produto.codigo.toLowerCase().includes(filtroBusca);
+      String(produto.nome || '').toLowerCase().includes(filtroBusca) ||
+      String(produto.codigo || '').toLowerCase().includes(filtroBusca);
     
     return passaStatus && passaCategoria && passaBusca;
   });
@@ -113,42 +116,45 @@ function aplicarFiltros() {
 // Função para renderizar tabela
 function renderizarTabela() {
   const corpoTabela = document.getElementById('corpoTabela');
-  const tabela = document.getElementById('tabelaProdutos');
+  const tabela = document.getElementById('tabelaWrapper');
   const emptyState = document.getElementById('emptyState');
+  const resultadosInfo = document.getElementById('resultadosInfo');
   
   corpoTabela.innerHTML = '';
+  resultadosInfo.textContent = `Exibindo ${produtosFiltrados.length} de ${todosProdutos.length} ${todosProdutos.length === 1 ? 'produto' : 'produtos'} com alerta`;
   
   if (produtosFiltrados.length === 0) {
-    tabela.style.display = 'none';
-    emptyState.style.display = 'block';
+    tabela.hidden = true;
+    emptyState.hidden = false;
+    const semAlertas = todosProdutos.length === 0;
+    document.getElementById('emptyTitle').textContent = semAlertas ? 'Todos os estoques estão em dia' : 'Nenhum produto encontrado';
+    document.getElementById('emptyDescription').textContent = semAlertas
+      ? 'Não há produtos em falta ou com baixa quantidade no momento.'
+      : 'Ajuste os filtros para ver outros produtos com alerta de estoque.';
     return;
   }
   
-  tabela.style.display = 'table';
-  emptyState.style.display = 'none';
+  tabela.hidden = false;
+  emptyState.hidden = true;
   
   produtosFiltrados.forEach(produto => {
     const status = determinarStatus(produto);
     const tr = document.createElement('tr');
     
     tr.innerHTML = `
-      <td>${produto.codigo}</td>
-      <td><strong>${produto.nome}</strong></td>
-      <td>${produto.categoria}</td>
-      <td style="text-align: center; font-weight: bold; color: ${produto.estoque === 0 ? 'var(--danger-color)' : 'var(--warning-color)'}">
-        ${produto.estoque} ${produto.unidadeMedida}
-      </td>
-      <td style="text-align: center;">${produto.estoqueMinimo} ${produto.unidadeMedida}</td>
-      <td style="text-align: center;">${produto.unidadeMedida}</td>
+      <td>${escapeHtml(produto.codigo)}</td>
+      <td><strong class="product-name">${escapeHtml(produto.nome)}</strong></td>
+      <td>${escapeHtml(produto.categoria || '—')}</td>
+      <td><span class="stock-current ${status.tipo}">${escapeHtml(produto.estoque)} ${escapeHtml(produto.unidadeMedida || 'un')}</span></td>
+      <td><span class="stock-min">${escapeHtml(produto.estoqueMinimo)} ${escapeHtml(produto.unidadeMedida || 'un')}</span></td>
       <td>
         <span class="status-badge ${status.tipo}">${status.texto}</span>
       </td>
       <td>
-        <button onclick="editarProduto('${produto._id}')" style="background-color: var(--accent-color); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">
-          ✏️ Editar
-        </button>
+        <button class="edit-btn" type="button">Editar</button>
       </td>
     `;
+    tr.querySelector('.edit-btn').addEventListener('click', () => editarProduto(produto._id));
     
     corpoTabela.appendChild(tr);
   });
@@ -168,15 +174,15 @@ function atualizarResumo() {
 // Função para mostrar loading
 function mostrarLoading(mostrar) {
   const loading = document.getElementById('loading');
-  const tabela = document.getElementById('tabelaProdutos');
+  const tabela = document.getElementById('tabelaWrapper');
   const emptyState = document.getElementById('emptyState');
   
   if (mostrar) {
-    loading.style.display = 'block';
-    tabela.style.display = 'none';
-    emptyState.style.display = 'none';
+    loading.hidden = false;
+    tabela.hidden = true;
+    emptyState.hidden = true;
   } else {
-    loading.style.display = 'none';
+    loading.hidden = true;
   }
 }
 
@@ -376,6 +382,10 @@ function voltarMenu() {
 document.getElementById('filtroStatus').addEventListener('change', aplicarFiltros);
 document.getElementById('filtroCategoria').addEventListener('change', aplicarFiltros);
 document.getElementById('filtroBusca').addEventListener('input', aplicarFiltros);
+document.getElementById('atualizarBtn').addEventListener('click', carregarProdutos);
+document.getElementById('exportExcelBtn').addEventListener('click', exportarParaExcel);
+document.getElementById('exportPdfBtn').addEventListener('click', exportarParaPDF);
+document.getElementById('backBtn').addEventListener('click', voltarMenu);
 
 // Inicializar ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {

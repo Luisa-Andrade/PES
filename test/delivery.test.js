@@ -7,6 +7,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const loadEnv = require('../src/utils/loadEnv');
+const axios = require('axios');
 
 test('calcula taxa padrão de R$ 13,60 para 4,3 km', () => {
   const previousBase = process.env.DELIVERY_BASE_FEE;
@@ -30,6 +31,24 @@ test('respeita valores de frete configurados por ambiente', () => {
 
 test('rejeita distância inválida', () => {
   assert.throws(() => routeService.calculateFee(-1), /Distância inválida/);
+});
+
+test('consulta a Routes API do Google e converte metros em quilômetros', async () => {
+  const originalPost = axios.post;
+  axios.post = async (url, body, options) => {
+    assert.equal(url, 'https://routes.googleapis.com/directions/v2:computeRoutes');
+    assert.deepEqual(body.origin, { address: 'Origem, Brasil' });
+    assert.deepEqual(body.destination, { address: 'Destino, Brasil' });
+    assert.equal(body.travelMode, 'DRIVE');
+    assert.equal(options.headers['X-Goog-Api-Key'], 'chave-teste');
+    assert.equal(options.headers['X-Goog-FieldMask'], 'routes.distanceMeters');
+    return { data: { routes: [{ distanceMeters: 4300 }] } };
+  };
+  try {
+    assert.equal(await routeService.calculateWithGoogle('Origem, Brasil', 'Destino, Brasil', 'chave-teste'), 4.3);
+  } finally {
+    axios.post = originalPost;
+  }
 });
 
 test('model de entrega aceita o fluxo completo de status delivery', async () => {

@@ -1,243 +1,130 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Elementos do DOM
-  const usuarioForm = document.getElementById('usuarioForm');
-  const usuarioId = document.getElementById('usuarioId');
-  const nome = document.getElementById('nome');
-  const email = document.getElementById('email');
-  const senha = document.getElementById('senha');
-  const tipo = document.getElementById('tipo');
-  const formTitle = document.getElementById('formTitle');
-  const btnSalvar = document.getElementById('btnSalvar');
-  const btnCancelar = document.getElementById('btnCancelar');
-  const btnLimpar = document.getElementById('btnLimpar');
-  const btnNovoUsuario = document.getElementById('btnNovoUsuario');
-  const btnVoltar = document.getElementById('btn-voltar');
-  const usuariosTableBody = document.getElementById('usuariosTableBody');
-  const statusMessage = document.getElementById('statusMessage');
-  
-  // Estado da aplicação
-  let modoEdicao = false;
-  let usuarioAtual = null;
-  
-  // Exibir mensagem de status
-  const showMessage = (message, isError = false) => {
-    statusMessage.textContent = message;
-    statusMessage.className = `status-message ${isError ? 'error' : 'success'}`;
-    statusMessage.style.display = 'block';
-    
-    // Ocultar mensagem após 3 segundos
-    setTimeout(() => {
-      statusMessage.style.display = 'none';
-    }, 3000);
-  };
-  
-  // Limpar o formulário
-  const limparFormulario = () => {
-    usuarioForm.reset();
-    usuarioId.value = '';
-    modoEdicao = false;
-    formTitle.textContent = 'Novo Usuário';
-    btnSalvar.textContent = 'Salvar';
-    senha.required = true; // Senha é obrigatória para novos usuários
-    
-    // Dar foco ao campo nome
-    nome.focus();
-  };
-  
-  // Função para focar no formulário de novo usuário
-  const focarNovoUsuario = () => {
-    // Limpar o formulário primeiro
-    limparFormulario();
-    
-    // Rolar até o formulário, se necessário
-    const formContainer = usuarioForm.closest('.card');
-    formContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    
-    // Destacar visualmente o formulário
-    formContainer.style.boxShadow = '0 0 10px #4CAF50';
-    setTimeout(() => {
-      formContainer.style.boxShadow = '';
-    }, 2000);
-    
-    // Focar no campo nome
-    nome.focus();
-  };
-  
-  // Carregar dados de um usuário para edição
-  const carregarUsuario = (usuario) => {
-    usuarioId.value = usuario.id;
-    nome.value = usuario.nome;
-    email.value = usuario.email;
-    senha.value = ''; // Não carrega a senha por segurança
-    senha.required = false; // Senha não é obrigatória na edição
-    tipo.value = usuario.tipo;
-    
-    modoEdicao = true;
-    usuarioAtual = usuario;
-    formTitle.textContent = 'Editar Usuário';
-    btnSalvar.textContent = 'Atualizar';
-    
-    // Rolar para o formulário
-    usuarioForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-  
-  // Buscar e exibir usuários
-  const buscarUsuarios = async () => {
-    try {
-      const usuarios = await window.usuariosAPI.getUsuarios();
-      exibirUsuarios(usuarios);
-    } catch (error) {
-      console.error('Erro ao buscar usuários:', error);
-      showMessage('Erro ao carregar usuários. Tente novamente.', true);
-    }
-  };
-  
-  // Exibir usuários na tabela
-  const exibirUsuarios = (usuarios) => {
-    usuariosTableBody.innerHTML = '';
-    
-    if (!usuarios || usuarios.length === 0) {
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td colspan="5" style="text-align: center;">Nenhum usuário encontrado</td>
-      `;
-      usuariosTableBody.appendChild(row);
+  const $ = id => document.getElementById(id);
+  const form = $('usuarioForm');
+  const modal = $('usuarioModal');
+  const status = $('statusMessage');
+  const modalStatus = $('modalStatus');
+  const tbody = $('usuariosTableBody');
+  const fields = { id: $('usuarioId'), nome: $('nome'), email: $('email'), senha: $('senha'), tipo: $('tipo') };
+  const salvar = $('btnSalvar');
+  let editando = false;
+  let mensagemTimer;
+
+  function mensagem(texto, erro = false) {
+    clearTimeout(mensagemTimer);
+    const destino = modal.hidden ? status : modalStatus;
+    destino.textContent = texto;
+    destino.className = `status-message ${erro ? 'error' : 'success'}${destino === modalStatus ? ' modal-status' : ''}`;
+    destino.style.display = 'block';
+    mensagemTimer = setTimeout(() => { destino.style.display = 'none'; }, 5000);
+  }
+  function abrirModal(usuario = null) {
+    form.reset();
+    editando = !!usuario;
+    fields.id.value = usuario?.id || '';
+    fields.nome.value = usuario?.nome || '';
+    fields.email.value = usuario?.email || '';
+    fields.senha.value = '';
+    fields.senha.required = !editando;
+    fields.tipo.value = usuario?.tipo || 'vendedor_loja';
+    $('formTitle').textContent = editando ? 'Editar usuário' : 'Novo usuário';
+    $('senhaAjuda').textContent = editando ? 'Deixe em branco para manter a senha atual.' : 'Mínimo de 6 caracteres.';
+    salvar.textContent = editando ? 'Salvar alterações' : 'Salvar usuário';
+    modalStatus.style.display = 'none';
+    modal.hidden = false;
+    document.body.classList.add('modal-aberto');
+    fields.nome.focus();
+  }
+  function fecharModal() {
+    modal.hidden = true;
+    document.body.classList.remove('modal-aberto');
+    form.reset();
+    $('btnNovoUsuario').focus();
+  }
+  function celula(row, texto) {
+    const td = row.insertCell();
+    td.textContent = String(texto ?? '');
+    return td;
+  }
+  const papeis = { vendedor_loja: 'Vendedor LOJA', vendedor_balcao: 'Vendedor BALCÃO', caixa: 'CAIXA', gerencia: 'GERÊNCIA' };
+  function renderizar(usuarios) {
+    tbody.replaceChildren();
+    if (!Array.isArray(usuarios) || !usuarios.length) {
+      const tr = tbody.insertRow();
+      const td = celula(tr, 'Nenhum usuário encontrado.');
+      td.colSpan = 5;
       return;
     }
-    
     usuarios.forEach(usuario => {
-      const row = document.createElement('tr');
-      if (!usuario.ativo) row.className = 'usuario-inativo';
-      
-      row.innerHTML = `
-        <td>${usuario.nome}</td>
-        <td>${usuario.email}</td>
-        <td>${({ vendedor_loja: 'Vendedor LOJA', vendedor_balcao: 'Vendedor BALCÃO', caixa: 'CAIXA', gerencia: 'GERÊNCIA' })[usuario.tipo] || usuario.tipo}</td>
-        <td>${usuario.ativo ? 'Ativo' : 'Inativo'}</td>
-        <td class="acoes">
-          <button class="btn-edit btn-secundario" data-id="${usuario.id}">Editar</button>
-          ${usuario.ativo 
-            ? `<button class="btn-disable btn-perigo" data-id="${usuario.id}">Desativar</button>`
-            : `<button class="btn-enable" data-id="${usuario.id}">Ativar</button>`
-          }
-        </td>
-      `;
-      
-      usuariosTableBody.appendChild(row);
-    });
-    
-    // Adicionar eventos aos botões
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        const id = this.getAttribute('data-id');
+      const tr = tbody.insertRow();
+      if (!usuario.ativo) tr.classList.add('usuario-inativo');
+      celula(tr, usuario.nome);
+      celula(tr, usuario.email);
+      celula(tr, papeis[usuario.tipo] || usuario.tipo);
+      const badge = document.createElement('span');
+      badge.className = `status-badge${usuario.ativo ? '' : ' inativo'}`;
+      badge.textContent = usuario.ativo ? 'Ativo' : 'Inativo';
+      celula(tr, '').appendChild(badge);
+      const acoes = celula(tr, '');
+      acoes.className = 'acoes';
+      const editar = document.createElement('button');
+      editar.type = 'button';
+      editar.className = 'btn-edit';
+      editar.textContent = 'Editar';
+      editar.addEventListener('click', async () => {
+        try { abrirModal(await window.usuariosAPI.getUsuarioById(usuario.id)); }
+        catch (error) { mensagem(error.message || 'Erro ao carregar usuário.', true); }
+      });
+      const alternar = document.createElement('button');
+      alternar.type = 'button';
+      alternar.className = usuario.ativo ? 'btn-disable' : 'btn-enable';
+      alternar.textContent = usuario.ativo ? 'Desativar' : 'Ativar';
+      alternar.addEventListener('click', async () => {
+        if (usuario.ativo && !window.confirm(`Desativar ${usuario.nome}?`)) return;
+        alternar.disabled = true;
         try {
-          const usuario = await window.usuariosAPI.getUsuarioById(id);
-          carregarUsuario(usuario);
-        } catch (error) {
-          console.error('Erro ao buscar usuário:', error);
-          showMessage('Erro ao carregar dados do usuário', true);
-        }
+          const resultado = await window.usuariosAPI.toggleUsuarioStatus(usuario.id, !usuario.ativo);
+          if (!resultado?.success) throw new Error(resultado?.message || 'Falha ao atualizar status.');
+          mensagem(resultado.message);
+          await carregar();
+        } catch (error) { mensagem(error.message || 'Erro ao atualizar status.', true); alternar.disabled = false; }
       });
-    });
-    
-    document.querySelectorAll('.btn-disable').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        if (confirm('Deseja realmente desativar este usuário?')) {
-          const id = this.getAttribute('data-id');
-          try {
-            const result = await window.usuariosAPI.toggleUsuarioStatus(id, false);
-            if (result.success) {
-              showMessage('Usuário desativado com sucesso');
-              buscarUsuarios();
-            } else {
-              showMessage(result.message, true);
-            }
-          } catch (error) {
-            console.error('Erro ao desativar usuário:', error);
-            showMessage('Erro ao desativar usuário', true);
-          }
-        }
-      });
-    });
-    
-    document.querySelectorAll('.btn-enable').forEach(btn => {
-      btn.addEventListener('click', async function() {
-        const id = this.getAttribute('data-id');
-        try {
-          const result = await window.usuariosAPI.toggleUsuarioStatus(id, true);
-          if (result.success) {
-            showMessage('Usuário ativado com sucesso');
-            buscarUsuarios();
-          } else {
-            showMessage(result.message, true);
-          }
-        } catch (error) {
-          console.error('Erro ao ativar usuário:', error);
-          showMessage('Erro ao ativar usuário', true);
-        }
-      });
-    });
-  };
-  
-  // Evento de envio do formulário
-  usuarioForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const usuarioData = {
-      nome: nome.value,
-      email: email.value,
-      tipo: tipo.value
-    };
-    
-    // Adiciona senha apenas se foi fornecida
-    if (senha.value) {
-      usuarioData.senha = senha.value;
-    }
-    
-    try {
-      let result;
-      
-      if (modoEdicao) {
-        result = await window.usuariosAPI.updateUsuario(usuarioId.value, usuarioData);
-      } else {
-        result = await window.usuariosAPI.createUsuario(usuarioData);
-      }
-      
-      if (result.success) {
-        showMessage(modoEdicao ? 'Usuário atualizado com sucesso' : 'Usuário criado com sucesso');
-        limparFormulario();
-        buscarUsuarios();
-      } else {
-        showMessage(result.message, true);
-      }
-    } catch (error) {
-      console.error('Erro ao salvar usuário:', error);
-      showMessage('Erro ao salvar usuário', true);
-    }
-  });
-  
-  // Botão de novo usuário
-  btnNovoUsuario.addEventListener('click', focarNovoUsuario);
-  
-  // Botão limpar formulário
-  btnLimpar.addEventListener('click', limparFormulario);
-  
-  // Botão cancelar (mesma função que limpar)
-  btnCancelar.addEventListener('click', limparFormulario);
-  
-  // Botão voltar (para a tela anterior)
-  btnVoltar.addEventListener('click', () => {
-    window.history.back();
-  });
-  
-  // Botão voltar ao menu principal
-  const btnVoltarMenu = document.getElementById('btn-voltar-menu');
-  if (btnVoltarMenu) {
-    btnVoltarMenu.addEventListener('click', () => {
-      window.location.href = 'main.html';
+      acoes.append(editar, alternar);
     });
   }
-  
-  // Inicializar a página
-  buscarUsuarios();
+  async function carregar() {
+    try {
+      const usuarios = await window.usuariosAPI.getUsuarios();
+      if (!Array.isArray(usuarios)) throw new Error('Resposta inválida ao carregar usuários.');
+      renderizar(usuarios);
+    } catch (error) {
+      console.error(error);
+      mensagem(error.message || 'Erro ao carregar usuários.', true);
+    }
+  }
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const dados = { nome: fields.nome.value.trim(), email: fields.email.value.trim().toLowerCase(), tipo: fields.tipo.value };
+    if (fields.senha.value) dados.senha = fields.senha.value;
+    if (!dados.nome || !dados.email) { mensagem('Preencha nome e e-mail.', true); return; }
+    if (!editando && !dados.senha) { mensagem('Informe uma senha.', true); return; }
+    salvar.disabled = true;
+    try {
+      const resultado = editando
+        ? await window.usuariosAPI.updateUsuario(fields.id.value, dados)
+        : await window.usuariosAPI.createUsuario(dados);
+      if (!resultado?.success) throw new Error(resultado?.message || 'Falha ao salvar usuário.');
+      fecharModal();
+      mensagem(editando ? 'Usuário atualizado com sucesso.' : 'Usuário criado com sucesso.');
+      await carregar();
+    } catch (error) { mensagem(error.message || 'Erro ao salvar usuário.', true); }
+    finally { salvar.disabled = false; }
+  });
+  $('btnNovoUsuario').addEventListener('click', () => abrirModal());
+  $('btnCancelar').addEventListener('click', fecharModal);
+  modal.querySelector('.user-modal-backdrop').addEventListener('click', fecharModal);
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !modal.hidden) fecharModal(); });
+  $('btn-voltar-menu').addEventListener('click', () => { window.location.href = 'main.html'; });
+  $('btn-voltar').addEventListener('click', () => { window.history.back(); });
+  carregar();
 });

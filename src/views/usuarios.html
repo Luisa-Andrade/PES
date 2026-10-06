@@ -217,8 +217,9 @@
     }
   </style>
   <link rel="stylesheet" href="../styles/page-consistency.css">
+  <link rel="stylesheet" href="../styles/usuarios.css">
 </head>
-<body>
+<body class="usuarios-page">
   <header class="app-header">
     <h1 class="app-header-title">Gerenciamento de Usuários</h1>
     <div class="header-buttons app-header-actions">
@@ -227,14 +228,34 @@
     </div>
   </header>
   
-  <div class="status-message" id="statusMessage"></div>
-  
   <div class="container">
-    <div class="card">
+    <div class="page-intro">
+      <span class="page-kicker">ADMINISTRAÇÃO</span>
+      <h1>Usuários e permissões</h1>
+      <p>Gerencie o acesso da equipe ao sistema.</p>
+    </div>
+    <div class="status-message" id="statusMessage" role="status" aria-live="polite"></div>
+    <div class="card users-list-card">
+      <div class="header-actions">
+        <div><h2>Usuários cadastrados</h2><p>Consulte e atualize os perfis da equipe.</p></div>
+        <button id="btnNovoUsuario" class="btn-novo" type="button">Novo usuário</button>
+      </div>
+      <div class="users-table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead>
+          <tbody id="usuariosTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="user-modal" id="usuarioModal" hidden>
+    <div class="user-modal-backdrop"></div>
+    <div class="card user-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="formTitle">
       <div class="form-title-container">
         <h2 id="formTitle">Novo Usuário</h2>
-        <button id="btnLimpar" class="button">Limpar Formulário</button>
       </div>
+      <div class="status-message modal-status" id="modalStatus" role="alert"></div>
       <form id="usuarioForm">
         <input type="hidden" id="usuarioId">
         
@@ -250,7 +271,8 @@
         
         <div class="form-group">
           <label for="senha">Senha:</label>
-          <input type="password" id="senha" required>
+          <input type="password" id="senha" required minlength="6" autocomplete="new-password">
+          <small id="senhaAjuda">Mínimo de 6 caracteres.</small>
         </div>
         
         <div class="form-group">
@@ -264,45 +286,14 @@
         </div>
         
         <div class="actions">
-          <button type="submit" id="btnSalvar" class="btn-secundario">Salvar</button>
+          <button type="submit" id="btnSalvar" class="btn-secundario">Salvar usuário</button>
           <button type="button" id="btnCancelar">Cancelar</button>
         </div>
       </form>
-    </div>
-    
-    <div class="card">
-      <div class="header-actions">
-        <h2>Usuários Cadastrados</h2>
-        <button id="btnNovoUsuario" class="btn-novo">
-          <span class="plus-icon"></span>
-          Novo Usuário
-        </button>
-      </div>
-      <div style="overflow-x: auto;">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Tipo</th>
-              <th>Status</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="usuariosTableBody">
-            <!-- Os usuários serão inseridos aqui -->
-          </tbody>
-        </table>
-      </div>
     </div>
   </div>
   
   <script src="../utils/electronInputFixer.js"></script>
   <script src="../scripts/usuarios.js"></script>
-  <script>
-    document.getElementById('btn-voltar-menu').addEventListener('click', function() {
-      window.location.href = 'main.html';
-    });
-  </script>
 </body>
 </html>

@@ -10,7 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnSalvar = document.getElementById('btnSalvar');
   const btnCancelar = document.getElementById('btnCancelar');
   const clienteFormCard = document.getElementById('clienteFormCard');
-  const gridLayout = document.querySelector('.grid-layout');
+  const clientEditor = document.getElementById('clientEditor');
+  const editorMessage = document.getElementById('editorMessage');
+  const closeClientEditor = document.getElementById('closeClientEditor');
+  const clientDetailActions = document.getElementById('clientDetailActions');
+  const clientesCount = document.getElementById('clientesCount');
   const detailsTabs = document.getElementById('detailsTabs');
   const tabs = detailsTabs.querySelectorAll('.tab');
   const tabContents = document.querySelectorAll('.tab-content');
@@ -41,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Campos do formulário de endereço
   const enderecosList = document.getElementById('enderecosList');
   const cep = document.getElementById('cep');
-  const btnBuscarCep = document.getElementById('btnBuscarCep');
   const cepSpinner = document.getElementById('cepSpinner');
   const logradouro = document.getElementById('logradouro');
   const numero = document.getElementById('numero');
@@ -56,50 +59,71 @@ document.addEventListener('DOMContentLoaded', () => {
   let clienteAtual = null;
   let modoEdicao = false;
   let enderecos = [];
+  let clientsRequest = 0;
+  let editorRequest = 0;
+  let creditRequest = 0;
+  let cepRequest = 0;
+  let cepDebounce;
+  let lastEditorTrigger = null;
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 
   // Mostrar mensagem de status
   function showMessage(message, isError = false, isProcessing = false) {
-    statusMessage.textContent = message;
-    statusMessage.className = `status-message ${isError ? 'error' : (isProcessing ? 'processing' : 'success')}`;
-    statusMessage.style.display = 'block';
+    const target = clientEditor.hidden ? statusMessage : editorMessage;
+    target.textContent = message;
+    target.className = `status-message ${isError ? 'error' : (isProcessing ? 'processing' : 'success')}`;
+    target.style.display = 'block';
     
     // Esconder após 5 segundos (exceto se for mensagem de processamento)
     if (!isProcessing) {
       setTimeout(() => {
-        statusMessage.style.display = 'none';
+        if (target.textContent === message) target.style.display = 'none';
       }, 5000);
     }
-    
-    // Rolar para a mensagem
-    statusMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (target === editorMessage) clienteFormCard.querySelector('.card-body').scrollTop = 0;
   }
   
-  // Controlar exibição do formulário de cliente (aparece só quando necessário)
+  // Abrir o cadastro sobre a lista, mantendo a posição da página.
   function mostrarFormulario() {
-    clienteFormCard.style.display = 'block';
-    gridLayout.classList.remove('single-col');
+    if (clientEditor.hidden) lastEditorTrigger = document.activeElement;
+    clientEditor.hidden = false;
+    document.body.classList.add('client-editor-open');
+    document.documentElement.classList.add('client-editor-open');
+    clienteFormCard.querySelector('.card-body').scrollTop = 0;
+    closeClientEditor.focus();
   }
   
   function ocultarFormulario() {
-    clienteFormCard.style.display = 'none';
-    gridLayout.classList.add('single-col');
+    if (clientEditor.hidden) return;
+    editorRequest++;
+    creditRequest++;
+    clearTimeout(cepDebounce);
+    cepRequest++;
+    cepSpinner.style.display = 'none';
+    clientEditor.hidden = true;
+    document.body.classList.remove('client-editor-open');
+    document.documentElement.classList.remove('client-editor-open');
+    editorMessage.style.display = 'none';
+    document.querySelectorAll('.client-item.active').forEach(item => item.classList.remove('active'));
+    if (lastEditorTrigger?.isConnected) lastEditorTrigger.focus({ preventScroll: true });
+    else btnNovoCliente.focus({ preventScroll: true });
+    lastEditorTrigger = null;
   }
-  
-  // Esconde o formulário se houver clientes na lista; senão mantém visível
-  function sincronizarVisibilidadeComLista() {
-    const temClientes = clientesList.querySelector('.client-item') !== null;
-    if (temClientes) {
-      ocultarFormulario();
-    } else {
-      mostrarFormulario();
-    }
+
+  function scrollDentroDoEditor(element) {
+    const body = clienteFormCard.querySelector('.card-body');
+    const top = element.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop - 16;
+    body.scrollTo({ top, behavior: 'smooth' });
   }
   
   // Função para alternar tipo de pessoa (física/jurídica)
   window.alternarTipoPessoa = () => {
     const tipoPessoa = tipo.value;
+    const pessoaFisica = tipoPessoa === 'pessoa_fisica';
+    cpfCnpj.maxLength = pessoaFisica ? 14 : 18;
+    cpfCnpj.inputMode = 'numeric';
     
-    if (tipoPessoa === 'pessoa_fisica') {
+    if (pessoaFisica) {
       labelCpfCnpj.textContent = 'CPF';
       cpfCnpj.placeholder = '000.000.000-00';
       cpfCnpjHelp.textContent = 'Formato: 000.000.000-00';
@@ -120,8 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Buscar clientes
   async function carregarClientes(filtro = '') {
+    const request = ++clientsRequest;
     try {
-      clientesList.innerHTML = '<div class="no-data">Carregando clientes...</div>';
+      clientesList.innerHTML = '<tr><td colspan="6" class="no-data">Carregando clientes...</td></tr>';
+      clientesCount.textContent = 'Carregando clientes...';
       
       console.log('Carregando clientes com filtro:', filtro);
       
@@ -130,55 +156,30 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const clientes = await window.clientesAPI.getClientes(filtro);
+      if (request !== clientsRequest) return;
+      clientesCount.textContent = `Exibindo ${clientes?.length || 0} ${clientes?.length === 1 ? 'cliente' : 'clientes'}`;
       
       if (!clientes || clientes.length === 0) {
-        clientesList.innerHTML = '<div class="no-data">Nenhum cliente encontrado</div>';
-        // Sem filtro de busca = lista completa vazia = nenhum cliente cadastrado
-        if (!filtro) {
-          limparFormulario();
-          mostrarFormulario();
-        }
+        clientesList.innerHTML = `<tr><td colspan="6" class="no-data">${filtro ? 'Nenhum cliente corresponde à busca.' : 'Nenhum cliente cadastrado.'}</td></tr>`;
         return;
       }
       
       clientesList.innerHTML = '';
       
-      // Com clientes cadastrados, mostra apenas a lista (formulário fica oculto)
-      if (!filtro) {
-        ocultarFormulario();
-      }
-      
-      clientes.forEach(cliente => {        const clienteItem = document.createElement('div');
+      clientes.forEach(cliente => {
+        const clienteItem = document.createElement('tr');
         clienteItem.className = 'client-item';
         clienteItem.dataset.id = cliente._id;
         
-        const tipoLabel = cliente.tipo === 'pessoa_fisica' ? 
-          '<span class="client-type pf">PF</span>' : 
-          '<span class="client-type pj">PJ</span>';
-        
-        const statusEl = cliente.ativo ? 
-          '' : 
-          '<span class="client-status inactive">Inativo</span>';
-        
-        // Exibe o CPF/CNPJ formatado
-        const cpfCnpjFormatado = cliente.cpfCnpj || '';
-        
+        const tipoLabel = cliente.tipo === 'pessoa_fisica' ? '<span class="client-type pf">Pessoa física</span>' : '<span class="client-type pj">Pessoa jurídica</span>';
+        const statusEl = cliente.ativo === false ? '<span class="client-status inactive">Inativo</span>' : '<span class="client-status active">Ativo</span>';
         clienteItem.innerHTML = `
-          <div class="client-content">
-            <div class="client-name">${cliente.nome} ${tipoLabel} ${statusEl}</div>
-            <div class="client-details">
-              <span>${cpfCnpjFormatado}</span>
-              <span>${cliente.telefone || ''}</span>
-            </div>
-          </div>
-          <div class="client-actions">
-            <button type="button" class="btn-icon btn-edit" title="Editar cliente">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button type="button" class="btn-icon btn-delete" title="Excluir cliente">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
+          <td class="client-content" data-label="Cliente"><button type="button" class="client-open">${escapeHtml(cliente.nome || 'Cliente sem nome')}</button></td>
+          <td data-label="CPF/CNPJ">${escapeHtml(cliente.cpfCnpjFormatado || cliente.cpfCnpj || '—')}</td>
+          <td data-label="Contato">${escapeHtml(cliente.celularFormatado || cliente.celular || cliente.telefoneFormatado || cliente.telefone || '—')}</td>
+          <td data-label="Tipo">${tipoLabel}</td>
+          <td data-label="Situação">${statusEl}</td>
+          <td data-label="Ações"><div class="client-actions"><button type="button" class="btn-icon btn-edit" aria-label="Editar ${escapeHtml(cliente.nome)}">Editar</button><button type="button" class="btn-icon btn-delete" aria-label="Excluir ${escapeHtml(cliente.nome)}">Excluir</button></div></td>
         `;
         
         // Adicionar evento para clicar no cliente (área do conteúdo)
@@ -195,15 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const btnEdit = clienteItem.querySelector('.btn-edit');
         const btnDelete = clienteItem.querySelector('.btn-delete');
         
-        btnEdit.addEventListener('click', (event) => {
+        btnEdit.addEventListener('click', async (event) => {
           event.stopPropagation(); // Evitar propagar o clique para o item
           document.querySelectorAll('.client-item').forEach(item => {
             item.classList.remove('active');
           });
           clienteItem.classList.add('active');
-          carregarDetalhesCliente(cliente._id);
-          // Focar no formulário
-          nome.focus();
+          await carregarDetalhesCliente(cliente._id);
         });
         
         btnDelete.addEventListener('click', (event) => {
@@ -214,13 +213,16 @@ document.addEventListener('DOMContentLoaded', () => {
         clientesList.appendChild(clienteItem);
       });
     } catch (error) {
+      if (request !== clientsRequest) return;
       console.error('Erro ao carregar clientes:', error);
-      clientesList.innerHTML = '<div class="no-data">Erro ao carregar clientes</div>';
+      clientesList.innerHTML = '<tr><td colspan="6" class="no-data">Erro ao carregar clientes.</td></tr>';
+      clientesCount.textContent = 'Não foi possível carregar a lista';
       showMessage('Erro ao carregar lista de clientes', true);
     }
   }
   // Carregar detalhes do cliente
   async function carregarDetalhesCliente(id) {
+    const request = ++editorRequest;
     try {
       // Mostrar mensagem de carregamento
       document.getElementById('detailsTitle').textContent = 'Carregando...';
@@ -231,8 +233,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const cliente = await window.clientesAPI.getClienteById(id);
+      if (request !== editorRequest || clientEditor.hidden) return;
       clienteAtual = cliente;
       modoEdicao = true;
+      clientDetailActions.hidden = false;
       
       // Atualizar título com nome do cliente
       document.getElementById('detailsTitle').textContent = `Cliente: ${cliente.nome}`;
@@ -277,9 +281,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // Validar campos preenchidos
       validarCpfCnpj();
       validarEmail();
+      nome.focus();
     } catch (error) {
+      if (request !== editorRequest) return;
       console.error('Erro ao carregar detalhes do cliente:', error);
-      document.getElementById('detailsTitle').textContent = 'Erro ao carregar cliente';
+      ocultarFormulario();
       showMessage('Erro ao carregar detalhes do cliente', true);
     }
   }
@@ -287,6 +293,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Carregar informações de crédito do cliente
   async function carregarInformacoesCredito(clienteId) {
     if (!clienteId) return;
+    const request = ++creditRequest;
     
     try {
       // Resetar as abas de crédito
@@ -312,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       console.log('Carregando informações de crédito para ID:', idParaConsulta);
       const resultado = await window.clientesAPI.getResumoFiado(idParaConsulta);
+      if (request !== creditRequest || clientEditor.hidden || String(clienteAtual?._id) !== String(idParaConsulta)) return;
       console.log('Resultado do getResumoFiado:', resultado);
       
       if (resultado && resultado.success && resultado.resumo) {
@@ -333,8 +341,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('creditoDisponivelValue').textContent = formatarValorParaExibicao(resumo.creditoDisponivel || 0);
         
         // Calcular porcentagem utilizada do limite
-        const percentualUtilizado = resumo.limiteCredito ? 
-          Math.min(100, Math.round((resumo.saldoDevedor / resumo.limiteCredito) * 100)) : 0;
+        const creditoTotal = Number(resumo.limiteCredito || 0) + Number(resumo.creditoAdicional || 0);
+        const percentualUtilizado = creditoTotal > 0
+          ? Math.min(100, Math.max(0, Math.round(Number(resumo.saldoDevedor || 0) / creditoTotal * 100)))
+          : Number(resumo.saldoDevedor || 0) > 0 ? 100 : 0;
         
         document.getElementById('creditoBarraPreenchido').style.width = `${percentualUtilizado}%`;
         
@@ -351,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Informações de fiado
         document.getElementById('vendasPendentesValue').textContent = resumo.vendasPendentes || 0;
         document.getElementById('vendasVencidasValue').textContent = resumo.vendasVencidas || 0;
+        document.getElementById('btnPagouCredito').disabled = Number(resumo.saldoDevedor || 0) <= 0;
         
         // Valor vencido - destacar se for maior que zero
         const valorVencidoEl = document.getElementById('valorVencidoValue');
@@ -375,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(resultado?.message || 'Erro desconhecido');
       }
     } catch (error) {
+      if (request !== creditRequest) return;
       console.error('Erro ao carregar informações de crédito:', error);
       document.querySelector('.credito-status-loading').style.display = 'none';
       document.getElementById('creditoErro').style.display = 'block';
@@ -447,20 +459,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnConfirmar = document.getElementById('btnConfirmarCredito');
     const btnCancelar = document.getElementById('btnCancelarCredito');
     const btnFechar = document.getElementById('btnFecharModalCredito');
+    const erroCredito = document.getElementById('creditoExtraErro');
     
     // Configurar modal
     modalClienteNome.textContent = clienteAtual.nome;
     modalValorCredito.value = '';
     modalObservacao.value = '';
+    erroCredito.style.display = 'none';
+    btnConfirmar.disabled = false;
+    btnCancelar.disabled = false;
+    btnFechar.disabled = false;
     modal.style.display = 'flex';
     
     // Focar no campo de valor
     setTimeout(() => modalValorCredito.focus(), 100);
     
     // Aplicar formatação ao campo de valor
-    modalValorCredito.addEventListener('input', function() {
+    modalValorCredito.oninput = function() {
       window.formatarValor(this);
-    });
+      erroCredito.style.display = 'none';
+    };
+
+    const mostrarErroCredito = message => {
+      erroCredito.textContent = message;
+      erroCredito.style.display = 'block';
+    };
     
     // Função para fechar modal
     const fecharModal = () => {
@@ -468,6 +491,9 @@ document.addEventListener('DOMContentLoaded', () => {
       btnConfirmar.onclick = null;
       btnCancelar.onclick = null;
       btnFechar.onclick = null;
+      btnCancelar.disabled = false;
+      btnFechar.disabled = false;
+      btnAdicionarCredito?.focus({ preventScroll: true });
     };
     
     // Eventos de fechar
@@ -481,7 +507,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const observacao = modalObservacao.value;
         
         if (!valorInput || valorInput.trim() === '' || valorInput === '0,00') {
-          showMessage('Por favor, digite um valor válido', true);
+          mostrarErroCredito('Digite um valor de crédito válido.');
           return;
         }
         
@@ -489,15 +515,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const valorNumerico = converterValorParaNumero(valorInput);
         
         if (isNaN(valorNumerico) || valorNumerico <= 0) {
-          showMessage('Por favor, digite um valor válido maior que zero', true);
+          mostrarErroCredito('O valor do crédito deve ser maior que zero.');
           return;
         }
-        
-        // Fechar modal
-        fecharModal();
-        
-        // Exibir mensagem de processamento
-        showMessage('Adicionando crédito extra...', false, true);
+        btnConfirmar.disabled = true;
+        btnCancelar.disabled = true;
+        btnFechar.disabled = true;
         
         const resultado = await window.clientesAPI.adicionarCreditoExtra(clienteAtual._id, {
           valor: valorNumerico,
@@ -505,16 +528,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         if (resultado && resultado.success === true) {
+          fecharModal();
           showMessage(`Crédito extra de R$ ${formatarValorParaExibicao(valorNumerico)} adicionado com sucesso!`);
           
           // Recarregar informações de crédito
           await carregarInformacoesCredito(clienteAtual._id);
         } else {
-          showMessage(resultado?.message || 'Erro ao adicionar crédito extra', true);
+          mostrarErroCredito(resultado?.message || 'Erro ao adicionar crédito extra.');
         }
       } catch (error) {
         console.error('Erro ao adicionar crédito extra:', error);
-        showMessage('Ocorreu um erro ao adicionar crédito extra', true);
+        mostrarErroCredito('Não foi possível adicionar o crédito extra.');
+      } finally {
+        btnConfirmar.disabled = false;
+        btnCancelar.disabled = false;
+        btnFechar.disabled = false;
       }
     };
   }
@@ -570,16 +598,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const resultado = await window.clientesAPI.deleteCliente(id);
       
       if (resultado.success) {
-        showMessage(resultado.message || 'Cliente excluído com sucesso!');
-        
         // Resetar cliente atual se for o que foi excluído
         if (clienteAtual && clienteAtual._id === id) {
           limparFormulario();
-          document.getElementById('detailsTitle').textContent = 'Detalhes do Cliente';
+          ocultarFormulario();
         }
         
         // Recarregar lista de clientes
         await carregarClientes(searchInput.value);
+        showMessage(resultado.message || 'Cliente excluído com sucesso!');
       } else {
         showMessage(resultado.message || 'Erro ao excluir cliente', true);
       }
@@ -675,14 +702,12 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSalvarEndereco.dataset.mode = 'edit';
     btnSalvarEndereco.dataset.index = index;
     
-    // Rolar até o formulário
-    enderecoForm.scrollIntoView({ behavior: 'smooth' });
+    scrollDentroDoEditor(enderecoForm);
   }
 
   // Remover endereço
   function removerEndereco(index) {
-    if (!modoEdicao || !clienteAtual) return;
-    
+    if (!enderecos[index]) return;
     enderecos.splice(index, 1);
     carregarEnderecos(enderecos);
   }
@@ -704,6 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.form-error').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     document.getElementById('detailsTitle').textContent = 'Novo Cliente';
+    clientDetailActions.hidden = true;
     document.querySelectorAll('.client-item').forEach(item => item.classList.remove('active'));
     
     // Limpar validações
@@ -728,7 +754,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('tabInfo').classList.add('active');
     
     // Focar no primeiro campo
-    nome.focus();
   }
 
   // Salvar cliente
@@ -771,12 +796,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ativo: true
       };
 
-      console.log('=== DEBUG SALVAMENTO ===');
-      console.log('Campo limite credito valor bruto:', limiteCredito.value);
-      console.log('Campo limite credito convertido:', converterValorParaNumero(limiteCredito.value));
-      console.log('Status credito selecionado:', statusCredito.value);
-      console.log('Dados completos enviados:', clienteData);
-        let resultado;      if (modoEdicao && clienteId.value) {
+      btnSalvar.disabled = true;
+      let resultado;
+      if (modoEdicao && clienteId.value) {
         // Garantir que o ID seja uma string válida e não um objeto
         const idParaEnviar = String(clienteId.value).trim();
         
@@ -786,8 +808,6 @@ document.addEventListener('DOMContentLoaded', () => {
           showMessage("ID de cliente inválido. Por favor, recarregue a página.", true);
           return;
         }
-        
-        console.log("Enviando ID para atualização:", idParaEnviar);
         
         try {
           // Atualizar cliente existente
@@ -803,44 +823,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       if (resultado.success) {
-        showMessage(resultado.message || 'Cliente salvo com sucesso!');
-        
         // Recarregar lista de clientes
+        searchInput.value = '';
         await carregarClientes();
-        
-        // Se foi uma edição, manter o cliente selecionado
-        if (modoEdicao && clienteId.value) {
-          // Recarregar os dados do cliente editado para mostrar as alterações
-          await carregarDetalhesCliente(clienteId.value);
-        } else {
-          // Se foi um novo cliente, limpar o formulário
-          limparFormulario();
-        }
-        
-        // Se salvo com sucesso e tiver endereços para adicionar
-        if (resultado.cliente && resultado.cliente._id && enderecos.length > 0) {
-          const clienteSalvoId = resultado.cliente._id;
-          
-          // Adicionar endereços ao cliente salvo
-          for (const endereco of enderecos) {
-            await window.clientesAPI.updateCliente(clienteSalvoId, { 
-              novoEndereco: endereco 
-            });
-          }
-          
-          showMessage('Cliente e endereços salvos com sucesso!');
-          
-          // Se for um cliente novo com endereços, selecionar após adicionar endereços
-          if (!modoEdicao) {
-            await carregarDetalhesCliente(clienteSalvoId);
-          }
-        }
+        limparFormulario();
+        ocultarFormulario();
+        showMessage(resultado.message || 'Cliente salvo com sucesso!');
       } else {
         showMessage(resultado.message || 'Erro ao salvar cliente', true);
       }
     } catch (error) {
       console.error('Erro ao salvar cliente:', error);
       showMessage('Erro ao salvar cliente: ' + error.message, true);
+    } finally {
+      btnSalvar.disabled = false;
     }
   }
 
@@ -891,6 +887,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Buscar CEP
   async function buscarCep() {
     const cepValue = cep.value.replace(/\D/g, '');
+    const request = ++cepRequest;
     
     if (cepValue.length !== 8) {
       showMessage('CEP inválido. Informe um CEP com 8 dígitos.', true);
@@ -905,6 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!response.ok) throw new Error('Erro ao buscar CEP');
       
       const data = await response.json();
+      if (request !== cepRequest || cep.value.replace(/\D/g, '') !== cepValue) return;
       
       if (data.erro) {
         showMessage('CEP não encontrado', true);
@@ -921,10 +919,11 @@ document.addEventListener('DOMContentLoaded', () => {
       numero.focus();
       
     } catch (error) {
+      if (request !== cepRequest) return;
       console.error('Erro ao buscar CEP:', error);
       showMessage('Erro ao consultar CEP', true);
     } finally {
-      cepSpinner.style.display = 'none';
+      if (request === cepRequest) cepSpinner.style.display = 'none';
     }
   }
 
@@ -942,8 +941,12 @@ document.addEventListener('DOMContentLoaded', () => {
       return true;
     }
     
-    const ehCPF = valor.length <= 11;
-    const valido = ehCPF ? validaCPF(valor) : validaCNPJ(valor);
+    const pessoaFisica = tipo.value === 'pessoa_fisica';
+    const tamanho = pessoaFisica ? 11 : 14;
+    const valido = valor.length === tamanho && (pessoaFisica ? validaCPF(valor) : validaCNPJ(valor));
+    cpfCnpjError.textContent = valor.length !== tamanho
+      ? `${pessoaFisica ? 'CPF' : 'CNPJ'} deve ter ${tamanho} dígitos.`
+      : `${pessoaFisica ? 'CPF' : 'CNPJ'} inválido.`;
     
     if (valido) {
       cpfCnpj.classList.remove('is-invalid');
@@ -1048,24 +1051,19 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Formatação de CPF/CNPJ no evento de input
   cpfCnpj.addEventListener('input', function() {
-    const valor = this.value.replace(/\D/g, '');
-    
-    if (valor.length <= 11) {  // CPF
-      this.value = valor.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, function(match, p1, p2, p3, p4) {
-        if (p4) return `${p1}.${p2}.${p3}-${p4}`;
-        if (p3) return `${p1}.${p2}.${p3}`;
-        if (p2) return `${p1}.${p2}`;
-        return p1;
-      });
-    } else {  // CNPJ
-      this.value = valor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, function(match, p1, p2, p3, p4, p5) {
-        if (p5) return `${p1}.${p2}.${p3}/${p4}-${p5}`;
-        if (p4) return `${p1}.${p2}.${p3}/${p4}`;
-        if (p3) return `${p1}.${p2}.${p3}`;
-        if (p2) return `${p1}.${p2}`;
-        return p1;
-      });
+    const pessoaFisica = tipo.value === 'pessoa_fisica';
+    const valor = this.value.replace(/\D/g, '').slice(0, pessoaFisica ? 11 : 14);
+    if (pessoaFisica) {
+      this.value = valor.length > 9 ? `${valor.slice(0, 3)}.${valor.slice(3, 6)}.${valor.slice(6, 9)}-${valor.slice(9)}`
+        : valor.length > 6 ? `${valor.slice(0, 3)}.${valor.slice(3, 6)}.${valor.slice(6)}`
+        : valor.length > 3 ? `${valor.slice(0, 3)}.${valor.slice(3)}` : valor;
+    } else {
+      this.value = valor.length > 12 ? `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5, 8)}/${valor.slice(8, 12)}-${valor.slice(12)}`
+        : valor.length > 8 ? `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5, 8)}/${valor.slice(8)}`
+        : valor.length > 5 ? `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5)}`
+        : valor.length > 2 ? `${valor.slice(0, 2)}.${valor.slice(2)}` : valor;
     }
+    if (cpfCnpj.classList.contains('is-invalid') || cpfCnpj.classList.contains('is-valid')) validarCpfCnpj();
   });
   
   // Formatação de telefone
@@ -1099,16 +1097,24 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Formatação de CEP
   cep.addEventListener('input', function() {
-    const valor = this.value.replace(/\D/g, '');
+    clearTimeout(cepDebounce);
+    cepRequest++;
+    cepSpinner.style.display = 'none';
+    const valor = this.value.replace(/\D/g, '').slice(0, 8);
     this.value = valor.replace(/^(\d{5})(\d{0,3})/, function(match, p1, p2) {
       if (p2) return `${p1}-${p2}`;
       return p1;
     });
+    if (valor.length === 8) cepDebounce = setTimeout(() => buscarCep(), 350);
   });
   
   // Formatação de valor monetário
   window.formatarValor = function(input) {
     let valor = input.value.replace(/\D/g, '');
+    if (!valor) {
+      input.value = '';
+      return;
+    }
     
     valor = (parseInt(valor) / 100).toFixed(2);
     valor = valor.replace('.', ',');
@@ -1169,7 +1175,56 @@ document.addEventListener('DOMContentLoaded', () => {
   btnNovoCliente.addEventListener('click', () => {
     limparFormulario();
     mostrarFormulario();
+    nome.focus();
   });
+  closeClientEditor.addEventListener('click', ocultarFormulario);
+  let pressedBackdrop = false;
+  clientEditor.addEventListener('pointerdown', event => {
+    pressedBackdrop = event.target === clientEditor;
+  });
+  clientEditor.addEventListener('pointerup', event => {
+    if (pressedBackdrop && event.target === clientEditor) ocultarFormulario();
+    pressedBackdrop = false;
+  });
+  clientEditor.addEventListener('pointercancel', () => { pressedBackdrop = false; });
+  document.addEventListener('keydown', event => {
+    if (clientEditor.hidden) return;
+    const otherModalOpen = [...document.querySelectorAll('.modal')]
+      .some(modal => getComputedStyle(modal).display !== 'none');
+    if (otherModalOpen) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (getComputedStyle(document.getElementById('modalCreditoExtra')).display !== 'none') {
+          document.getElementById('btnFecharModalCredito').click();
+        } else {
+          document.getElementById('btnFecharHistorico').click();
+        }
+      }
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      ocultarFormulario();
+    } else if (event.key === 'Tab') {
+      const focusable = [...clientEditor.querySelectorAll('button, input, select, textarea, a[href], [tabindex]')]
+        .filter(element => !element.disabled && element.getClientRects().length && element.tabIndex >= 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  });
+  document.getElementById('btnExcluirClienteAtual').addEventListener('click', () => {
+    if (!clienteAtual?._id) return showMessage('Selecione um cliente para excluir.', true);
+    excluirCliente(clienteAtual._id, clienteAtual.nome);
+  });
+  document.getElementById('saveFromAddressBtn').addEventListener('click', () => tabs[0].click());
   
   // Voltar
   btnVoltar.addEventListener('click', () => {
@@ -1182,7 +1237,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Cancelar cadastro
   btnCancelar.addEventListener('click', () => {
     limparFormulario();
-    sincronizarVisibilidadeComLista();
+    ocultarFormulario();
   });
   
   // Eventos da aba de endereços
@@ -1193,9 +1248,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSalvarEndereco.dataset.mode = 'add';
     delete btnSalvarEndereco.dataset.index;
   });
-  
-  // Buscar CEP
-  btnBuscarCep.addEventListener('click', buscarCep);
   
   // Botão "Pagou" para zerar saldo devedor
   const btnPagouCredito = document.getElementById('btnPagouCredito');
@@ -1341,7 +1393,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="historico-tipo ${registro.tipo}">${tipoTexto[registro.tipo] || registro.tipo}</span>
         <span class="historico-data">${dataFormatada}</span>
       </div>
-      <div class="historico-descricao">${registro.descricao}</div>
+      <div class="historico-descricao">${escapeHtml(registro.descricao)}</div>
       <div class="historico-valores">
         <div class="historico-valor-item">
           <strong>Valor:</strong>
@@ -1358,28 +1410,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <span>R$ ${formatarValorParaExibicao(registro.saldoNovo)}</span>
         </div>
       </div>
-      ${registro.observacoes ? `<div style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px; color: #555;"><strong style="color: #333;">💬 Observações:</strong> ${registro.observacoes}</div>` : ''}
-      ${registro.nomeUsuario ? `<div style="margin-top: 8px; font-size: 12px; color: #999; display: flex; align-items: center; gap: 5px;"><i class="fas fa-user"></i> ${registro.nomeUsuario}</div>` : ''}
+      ${registro.observacoes ? `<div style="margin-top: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 13px; color: #555;"><strong style="color: #333;">💬 Observações:</strong> ${escapeHtml(registro.observacoes)}</div>` : ''}
+      ${registro.nomeUsuario ? `<div style="margin-top: 8px; font-size: 12px; color: #999; display: flex; align-items: center; gap: 5px;"><i class="fas fa-user"></i> ${escapeHtml(registro.nomeUsuario)}</div>` : ''}
     `;
     
     return div;
-  }
-  
-  // Botão para ver histórico completo de fiado (versão antiga - mantida para compatibilidade)
-  const btnVerDetalhesHistoricoAntigo = document.getElementById('btnVerDetalhesHistorico');
-  if (btnVerDetalhesHistoricoAntigo && !btnVerDetalhesHistorico) {
-    btnVerDetalhesHistorico.addEventListener('click', () => {
-      if (clienteAtual && clienteAtual._id) {
-        // Salvar o ID do cliente no localStorage para uso na página de fiado
-        localStorage.setItem('clienteFiadoId', clienteAtual._id);
-        localStorage.setItem('clienteFiadoNome', clienteAtual.nome || '');
-        
-        // Redirecionar para a página de fiado
-        window.location.href = 'fiado.html';
-      } else {
-        showMessage('Selecione um cliente primeiro', true);
-      }
-    });
   }
   
   // Eventos de validação
@@ -1438,12 +1473,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Garantir que o formulário de endereço esteja visível e resetado
         document.getElementById('enderecoForm').style.display = 'block';
         
-        // Rolar suavemente até o form de endereço quando não houver endereços
-        if (!enderecos.length) {
-          setTimeout(() => {
-            document.querySelector('.form-section-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }, 100);
-        }
       }
     });
   });

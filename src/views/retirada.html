@@ -365,8 +365,9 @@
     }
   </style>
   <link rel="stylesheet" href="../styles/page-consistency.css">
+  <link rel="stylesheet" href="../styles/retirada.css">
 </head>
-<body>
+<body class="retirada-page">
   <header class="app-header">
     <div class="header-title app-header-title">Retirada de Dinheiro</div>
     <div class="user-info app-header-actions">
@@ -377,19 +378,22 @@
 
   <div class="container">
     <div class="page-title">
-      <h2>Retirada de Dinheiro do Balcão</h2>
-      <p>Registre as retiradas de dinheiro realizadas no balcão da loja</p>
+      <span class="page-kicker">MOVIMENTO DE CAIXA</span>
+      <h1>Retirada de dinheiro</h1>
+      <p>Registre a saída de dinheiro do caixa com o responsável e o motivo.</p>
     </div>
 
     <div class="summary-cards">
       <div class="summary-card total">
-        <div class="summary-label">💰 Saldo Disponível no Caixa</div>
-        <div class="summary-value" id="saldoDisponivel">R$ 0,00</div>
-        <div class="summary-detail" id="detailSaldo">Valor disponível para retirada</div>
+        <div class="summary-label">Saldo disponível em dinheiro</div>
+        <div class="summary-value" id="saldoDisponivel">Carregando...</div>
+        <div class="summary-detail" id="detailSaldo">Consultando o caixa</div>
       </div>
     </div>
 
     <div class="form-container">
+      <div class="panel-header"><h2>Registrar retirada</h2><p>Confira o valor antes de confirmar.</p></div>
+      <div class="form-body">
       <div class="success-message" id="successMessage">
         Retirada registrada com sucesso!
       </div>
@@ -409,7 +413,8 @@
 
         <div class="form-group">
           <label for="valor">Valor da Retirada (R$) *</label>
-          <input type="number" id="valor" name="valor" placeholder="0.00" step="0.01" min="0" required>
+          <input type="number" id="valor" name="valor" placeholder="0,00" step="0.01" min="0.01" aria-describedby="valorAjuda" required>
+          <small id="valorAjuda" class="valor-ajuda" aria-live="polite">Consultando o saldo disponível...</small>
         </div>
 
         <div class="form-group">
@@ -428,23 +433,11 @@
         </div>
 
         <div class="button-group">
-          <button type="submit" class="btn-primary">Registrar Retirada</button>
-          <button type="reset" class="btn-secondary">Limpar Formulário</button>
+          <button type="submit" class="btn-primary" id="btnRegistrar">Registrar retirada</button>
+          <button type="reset" class="btn-secondary" id="btnLimparRetirada">Limpar formulário</button>
         </div>
       </form>
-    </div>
-  </div>
-
-  <div class="status-bar">
-    <div style="display: flex; align-items: center; gap: 5px;">
-      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: var(--success-color);"></span>
-      <span>Sistema conectado</span>
-    </div>
-    <div id="last-update">
-      Última atualização: <span>Hoje às 10:45</span>
-    </div>
-    <div id="version-info">
-      Versão 1.0.0
+      </div>
     </div>
   </div>
 

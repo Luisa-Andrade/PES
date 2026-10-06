@@ -3,6 +3,7 @@ const Venda = require('../models/venda');
 const Produto = require('../models/produto');
 const HistoricoCredito = require('../models/historicoCredito');
 const dbConnection = require('../db/connection');
+const calcularBaixasEstoque = require('../utils/calcularBaixasEstoque');
 
 class VendasController {
   constructor() {
@@ -150,6 +151,7 @@ class VendasController {
       }
       
       // Validar estoque antes de registrar a venda (evita vender mais do que existe)
+      const produtosPorId = new Map();
       for (const item of vendaData.itens) {
         if (!item.produto || !mongoose.Types.ObjectId.isValid(item.produto)) {
           return { success: false, message: 'Um dos itens não possui produto válido.' };
@@ -159,18 +161,23 @@ class VendasController {
           return { success: false, message: 'A quantidade dos produtos deve ser maior que zero.' };
         }
         
-        const produto = await Produto.findById(item.produto).select('nome estoque exigeReceita ativo');
+        const id = String(item.produto);
+        const produto = produtosPorId.get(id) || await Produto.findById(id).select('nome estoque exigeReceita ativo');
         if (!produto || !produto.ativo) {
           return { success: false, message: 'Um dos produtos não está mais disponível.' };
         }
+        produtosPorId.set(id, produto);
         if (produto.exigeReceita && item.receitaApresentada !== true) {
           return {
             success: false,
             message: `Confirme que há receita para "${produto.nome}" antes de finalizar.`
           };
         }
-        
-        if (!opcoes.estoqueReservado && produto.estoque < quantidadeNum) {
+      }
+      const baixasEstoque = calcularBaixasEstoque(vendaData.itens, opcoes);
+      for (const [id, quantidade] of baixasEstoque) {
+        const produto = produtosPorId.get(id);
+        if (quantidade > 0 && produto.estoque < quantidade) {
           return {
             success: false,
             message: `Estoque insuficiente para "${produto.nome}". Disponível: ${produto.estoque}`
@@ -189,25 +196,28 @@ class VendasController {
         // Salvar a venda
         await venda.save({ session });
         
-        // Pré-vendas com reserva já baixaram o estoque ao salvar seus itens.
-        if (!opcoes.estoqueReservado) {
-          for (const item of vendaData.itens) {
-            if (!item.produto || !mongoose.Types.ObjectId.isValid(item.produto)) continue;
-            const quantidadeNum = parseFloat(item.quantidade) || 0;
-            if (quantidadeNum <= 0) continue;
-
+        // As quantidades reservadas já foram baixadas ao salvar a pré-venda.
+        for (const [id, quantidadeNum] of baixasEstoque) {
+          if (quantidadeNum > 0) {
             const produtoAtualizado = await Produto.findOneAndUpdate(
-              { _id: item.produto, estoque: { $gte: quantidadeNum } },
+              { _id: id, estoque: { $gte: quantidadeNum } },
               { $inc: { estoque: -quantidadeNum } },
               { session, new: true }
             );
 
             if (!produtoAtualizado) {
-              const produto = await Produto.findById(item.produto).session(session).select('nome estoque');
-              const nome = produto ? produto.nome : item.nomeProduto || 'produto';
+              const produto = await Produto.findById(id).session(session).select('nome estoque');
+              const nome = produto ? produto.nome : produtosPorId.get(id)?.nome || 'produto';
               const disponivel = produto ? produto.estoque : 0;
               throw new Error(`Estoque insuficiente para "${nome}". Disponível: ${disponivel}`);
             }
+          } else if (quantidadeNum < 0) {
+            const devolucao = await Produto.updateOne(
+              { _id: id },
+              { $inc: { estoque: -quantidadeNum } },
+              { session }
+            );
+            if (devolucao.matchedCount !== 1) throw new Error('Um produto reservado não foi encontrado.');
           }
         }
         

@@ -1,262 +1,141 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  const userNameElement = document.getElementById('userName');
-  const backBtn = document.getElementById('backBtn');
-  const retiradaForm = document.getElementById('retiradaForm');
-  const successMessage = document.getElementById('successMessage');
-  const errorMessage = document.getElementById('errorMessage');
-  const lastUpdateElement = document.getElementById('last-update');
+  const $ = id => document.getElementById(id);
+  const form = $('retiradaForm');
+  const erro = $('errorMessage');
+  const sucesso = $('successMessage');
+  const registrar = $('btnRegistrar');
+  const campoValor = $('valor');
+  const valorAjuda = $('valorAjuda');
+  const formatar = valor => Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  let usuario;
+  let saldoDisponivel = null;
+  let enviando = false;
 
-  let currentUser = null;
-
-  // Função para formatar valores em reais
-  const formatarReal = (valor) => {
-    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  };
-
-  // Função para carregar saldo do caixa (apenas cálculo, sem exibir)
-  const carregarSaldoCaixa = async () => {
-    try {
-      const resultado = await window.electronAPI.invoke('obter-saldo-caixa', {});
-      
-      if (resultado && resultado.sucesso) {
-        const saldo = resultado.dados.saldo || 0;
-        return saldo;
+  function validarCampoValor() {
+    const limite = saldoDisponivel === null ? null : Math.max(0, Math.round(saldoDisponivel * 100) / 100);
+    const textoLimite = limite === null ? 'Saldo indisponível. Aguarde a atualização.' : `Máximo disponível: ${formatar(limite)}.`;
+    let mensagem = '';
+    if (campoValor.validity.badInput) {
+      mensagem = 'Informe um valor numérico válido.';
+    } else if (campoValor.value !== '') {
+      const valor = Number(campoValor.value);
+      if (!Number.isFinite(valor) || valor <= 0 || Math.abs(valor * 100 - Math.round(valor * 100)) > 0.000001) {
+        mensagem = 'Informe um valor positivo com até duas casas decimais.';
+      } else if (limite !== null && Math.round(valor * 100) > Math.round(limite * 100)) {
+        mensagem = `O valor ultrapassa o saldo do caixa. ${textoLimite}`;
       }
-    } catch (error) {
-      console.error('Erro ao carregar saldo do caixa:', error);
     }
-    return 0;
-  };
-
-  // Função para carregar e exibir saldo disponível
-  const carregarSaldoDisponivel = async () => {
-    try {
-      console.log('Iniciando carregamento de saldo disponível...');
-      
-      // Verificar se a API está disponível
-      if (!window.electronAPI) {
-        console.error('window.electronAPI não está disponível');
-        return;
-      }
-      
-      if (!window.electronAPI.invoke) {
-        console.error('window.electronAPI.invoke não está disponível');
-        return;
-      }
-      
-      const resultado = await window.electronAPI.invoke('obter-saldo-caixa', {});
-      console.log('Resposta do saldo do caixa:', resultado);
-      
-      if (resultado && resultado.sucesso) {
-        const saldo = resultado.dados.saldo || 0;
-        const totalVendas = resultado.dados.totalVendas || 0;
-        const totalRetiradas = resultado.dados.totalRetiradas || 0;
-
-        console.log(`Saldo disponível: R$${saldo}, Vendas: R$${totalVendas}, Retiradas: R$${totalRetiradas}`);
-
-        // Atualizar elementos
-        document.getElementById('saldoDisponivel').textContent = formatarReal(saldo);
-        document.getElementById('detailSaldo').textContent = `R$ ${formatarReal(totalVendas)} em vendas - R$ ${formatarReal(totalRetiradas)} retiradas`;
-      } else {
-        console.error('Resultado sem sucesso:', resultado);
-        if (resultado && resultado.mensagem) {
-          console.error('Mensagem de erro:', resultado.mensagem);
-        }
-        // Mostrar valores padrão em caso de erro
-        document.getElementById('saldoDisponivel').textContent = 'R$ 0,00';
-      }
-    } catch (error) {
-      console.error('Erro ao carregar saldo disponível:', error);
-      // Mostrar valores padrão em caso de erro
-      document.getElementById('saldoDisponivel').textContent = 'R$ 0,00';
-    }
-  };
-
-  // Função para carregar total de vendas (mantida para compatibilidade)
-  const carregarTotalVendas = async () => {
-    try {
-      console.log('Iniciando carregamento de total de vendas...');
-      
-      // Verificar se a API está disponível
-      if (!window.electronAPI) {
-        console.error('window.electronAPI não está disponível');
-        return;
-      }
-      
-      if (!window.electronAPI.invoke) {
-        console.error('window.electronAPI.invoke não está disponível');
-        return;
-      }
-      
-      const resultado = await window.electronAPI.invoke('obter-total-vendas', {});
-      console.log('Resultado recebido:', resultado);
-      
-      if (resultado && resultado.sucesso) {
-        const totalHoje = resultado.dados.totalHoje || 0;
-        const totalGeral = resultado.dados.totalGeral || 0;
-        const vendidosHoje = resultado.dados.vendidosHoje || 0;
-        const vendidosTotal = resultado.dados.vendidosTotal || 0;
-
-        console.log(`Dados recebidos - Hoje: R$${totalHoje}, Geral: R$${totalGeral}, Vendas hoje: ${vendidosHoje}, Total vendas: ${vendidosTotal}`);
-
-        // Atualizar elementos (apenas total geral)
-        document.getElementById('totalVendasGeral').textContent = formatarReal(totalGeral);
-        document.getElementById('detailVendasGeral').textContent = `${vendidosTotal} venda${vendidosTotal !== 1 ? 's' : ''} no total`;
-      } else {
-        console.error('Resultado sem sucesso:', resultado);
-        if (resultado && resultado.mensagem) {
-          console.error('Mensagem de erro:', resultado.mensagem);
-        }
-        // Mostrar valores padrão em caso de erro
-        document.getElementById('totalVendasGeral').textContent = 'R$ 0,00';
-      }
-    } catch (error) {
-      console.error('Erro ao carregar total de vendas:', error);
-      // Mostrar valores padrão em caso de erro
-      document.getElementById('totalVendasGeral').textContent = 'R$ 0,00';
-    }
-  };
-
-  // Atualizar a data/hora no footer
-  const updateDateTime = () => {
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('pt-BR');
-    const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    lastUpdateElement.innerHTML = `Última atualização: <span>${formattedDate} às ${formattedTime}</span>`;
-  };
-
-  updateDateTime();
-  setInterval(updateDateTime, 60000);
-
-  // Obter dados do usuário atual
-  try {
-    currentUser = await window.authAPI.getCurrentUser();
-    console.log('Dados do usuário atual na retirada:', currentUser);
-    if (currentUser) {
-      userNameElement.textContent = currentUser.nome;
-      // Preencher o campo responsável com o nome do usuário
-      document.getElementById('responsavel').value = currentUser.nome;
-    } else {
-      console.error('Nenhum usuário encontrado, redirecionando para login');
-      window.location.href = 'login.html';
-    }
-  } catch (error) {
-    console.error('Erro ao obter dados do usuário:', error);
-    window.location.href = 'login.html';
+    valorAjuda.textContent = mensagem || textoLimite;
+    valorAjuda.classList.toggle('erro', Boolean(mensagem));
+    campoValor.setCustomValidity(mensagem);
+    registrar.disabled = enviando || limite === null || limite <= 0 || Boolean(mensagem);
+    return !mensagem && limite !== null && limite > 0;
   }
 
-  // Carregar total de vendas ao iniciar
-  carregarSaldoDisponivel();
-  // Atualizar a cada 30 segundos
-  setInterval(() => {
-    carregarSaldoDisponivel();
-  }, 30000);
-
-  // Voltar diretamente ao menu principal
-  backBtn.addEventListener('click', () => {
-    window.location.href = 'main.html';
-  });
-
-  // Definir data e hora atuais por padrão (FIXOS, não mudam)
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('dataRetirada').value = today;
-  
-  const agora = new Date();
-  const horas = String(agora.getHours()).padStart(2, '0');
-  const minutos = String(agora.getMinutes()).padStart(2, '0');
-  const horaAtual = `${horas}:${minutos}`;
-  document.getElementById('horaRetirada').value = horaAtual;
-
-  // Configurar o envio do formulário
-  retiradaForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    try {
-      // Obter saldo atual antes de processar
-      const saldoAtual = await carregarSaldoCaixa();
-      const valorRetirada = parseFloat(document.getElementById('valor').value);
-
-      // Validações
-      if (!valorRetirada || valorRetirada <= 0) {
-        exibirErro('O valor da retirada deve ser maior que zero.');
-        return;
-      }
-
-      if (valorRetirada > saldoAtual) {
-        exibirErro(
-          `Saldo insuficiente no caixa.`,
-          `Saldo disponível: ${formatarReal(saldoAtual)}`,
-          `Valor solicitado: ${formatarReal(valorRetirada)}`,
-          `Diferença: ${formatarReal(valorRetirada - saldoAtual)}`
-        );
-        return;
-      }
-
-      // Verificar se temos o usuário atual
-      if (!currentUser || !currentUser.id) {
-        exibirErro('Erro de autenticação', 'Usuário não encontrado. Faça login novamente.');
-        return;
-      }
-
-      // Coletar dados do formulário
-      const dadosRetirada = {
-        dataRetirada: document.getElementById('dataRetirada').value,
-        horaRetirada: document.getElementById('horaRetirada').value,
-        valor: valorRetirada,
-        responsavel: document.getElementById('responsavel').value,
-        motivo: document.getElementById('motivo').value || 'Não especificado',
-        observacoes: document.getElementById('observacoes').value || '',
-        usuarioId: currentUser.id,
-        dataCriacao: new Date().toISOString() // Converter para string ISO
-      };
-
-      console.log('Dados da retirada que serão enviados:', dadosRetirada);
-      console.log('Usuario atual:', currentUser);
-
-      // Chamar a API para registrar a retirada
-      const resultado = await window.electronAPI.invoke('registrar-retirada', dadosRetirada);
-      
-      if (resultado.sucesso) {
-        // Mostrar mensagem de sucesso
-        successMessage.style.display = 'block';
-        errorMessage.style.display = 'none';
-        
-        // Limpar apenas o campo de valor e observações
-        document.getElementById('valor').value = '';
-        document.getElementById('motivo').value = '';
-        document.getElementById('observacoes').value = '';
-
-        // Recarregar saldo disponível
-        carregarSaldoDisponivel();
-
-        // Ocultar mensagem após 3 segundos
-        setTimeout(() => {
-          successMessage.style.display = 'none';
-        }, 3000);
-      } else {
-        throw new Error(resultado.mensagem || 'Erro ao registrar retirada');
-      }
-    } catch (error) {
-      console.error('Erro ao registrar retirada:', error);
-      exibirErro(
-        'Erro ao registrar a retirada',
-        error.message || 'Falha ao processar a retirada. Tente novamente.',
-        'Se o erro persistir, verifique sua conexão com o servidor.'
-      );
-    }
-  });
-
-  // Função auxiliar para exibir erros
+  function atualizarDataHora() {
+    const agora = new Date();
+    $('dataRetirada').value = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    $('horaRetirada').value = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+  }
   function exibirErro(...mensagens) {
-    const conteudoErro = mensagens
-      .filter(msg => msg) // Remove mensagens vazias
-      .join('<br><br>');
-    
-    errorMessage.innerHTML = `
-      <strong>❌ Erro na Operação</strong>
-      <div class="error-details">${conteudoErro}</div>
-    `;
-    errorMessage.style.display = 'block';
-    successMessage.style.display = 'none';
+    erro.replaceChildren();
+    const titulo = document.createElement('strong');
+    titulo.textContent = 'Não foi possível registrar a retirada';
+    erro.appendChild(titulo);
+    mensagens.filter(Boolean).forEach(texto => {
+      const p = document.createElement('p');
+      p.textContent = texto;
+      erro.appendChild(p);
+    });
+    erro.style.display = 'block';
+    sucesso.style.display = 'none';
   }
+  async function carregarSaldo() {
+    try {
+      if (!window.electronAPI?.invoke) throw new Error('Serviço do caixa indisponível.');
+      const resultado = await window.electronAPI.invoke('obter-saldo-caixa', {});
+      if (!resultado?.sucesso || !resultado.dados) throw new Error(resultado?.mensagem || 'Falha ao consultar o caixa.');
+      const saldo = Number(resultado.dados.saldo);
+      if (!Number.isFinite(saldo)) throw new Error('Saldo inválido recebido do caixa.');
+      saldoDisponivel = saldo;
+      campoValor.max = (Math.max(0, Math.round(saldo * 100)) / 100).toFixed(2);
+      $('saldoDisponivel').textContent = formatar(saldo);
+      $('detailSaldo').textContent = `${formatar(resultado.dados.totalVendas)} em entradas de dinheiro − ${formatar(resultado.dados.totalRetiradas)} em retiradas`;
+      validarCampoValor();
+      return saldo;
+    } catch (error) {
+      saldoDisponivel = null;
+      campoValor.removeAttribute('max');
+      $('saldoDisponivel').textContent = 'Indisponível';
+      $('detailSaldo').textContent = 'Não foi possível consultar o caixa.';
+      validarCampoValor();
+      throw error;
+    }
+  }
+
+  try {
+    usuario = await window.authAPI.getCurrentUser();
+    if (!usuario?.id) throw new Error('Sessão não encontrada.');
+    $('userName').textContent = usuario.nome;
+    $('responsavel').value = usuario.nome;
+  } catch (error) {
+    window.location.href = 'login.html';
+    return;
+  }
+  $('backBtn').addEventListener('click', () => { window.location.href = 'main.html'; });
+  campoValor.addEventListener('input', validarCampoValor);
+  atualizarDataHora();
+  try { await carregarSaldo(); }
+  catch (error) { exibirErro(error.message); }
+  setInterval(() => { if (!enviando) carregarSaldo().catch(() => {}); }, 30000);
+
+  form.addEventListener('reset', () => {
+    setTimeout(() => {
+      $('responsavel').value = usuario.nome;
+      atualizarDataHora();
+      validarCampoValor();
+    }, 0);
+  });
+  $('btnLimparRetirada').addEventListener('click', () => {
+    erro.style.display = 'none';
+    sucesso.style.display = 'none';
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (enviando) return;
+    if (!validarCampoValor()) return;
+    const valor = Number(campoValor.value);
+    if (!Number.isFinite(valor) || valor <= 0 || Math.abs(valor * 100 - Math.round(valor * 100)) > 0.000001) {
+      exibirErro('Informe um valor positivo com até duas casas decimais.');
+      return;
+    }
+    enviando = true;
+    registrar.disabled = true;
+    try {
+      const saldo = await carregarSaldo();
+      if (Math.round(valor * 100) > Math.round(saldo * 100)) {
+        exibirErro(`Saldo insuficiente. Disponível: ${formatar(saldo)}.`);
+        return;
+      }
+      atualizarDataHora();
+      const resultado = await window.electronAPI.invoke('registrar-retirada', {
+        valor,
+        responsavel: usuario.nome,
+        motivo: $('motivo').value.trim() || 'Não especificado',
+        observacoes: $('observacoes').value.trim(),
+        usuarioId: usuario.id
+      });
+      if (!resultado?.sucesso) throw new Error(resultado?.mensagem || 'Falha ao registrar retirada.');
+      form.reset();
+      sucesso.style.display = 'block';
+      erro.style.display = 'none';
+      try { await carregarSaldo(); }
+      catch (error) { exibirErro('Retirada salva, mas o saldo não pôde ser atualizado.'); }
+    } catch (error) {
+      exibirErro(error.message || 'Falha ao processar retirada.');
+    } finally {
+      enviando = false;
+      validarCampoValor();
+    }
+  });
 });

@@ -23,8 +23,8 @@ function formatar(preVenda) {
     estoqueReservado: preVenda.estoqueReservado === true,
     cliente: preVenda.cliente ? preVenda.cliente.toString() : null,
     nomeCliente: preVenda.nomeCliente,
-    itens: preVenda.itens.map(item => ({
-      produto: item.produto.toString(),
+    itens: (preVenda.itens || []).map(item => ({
+      produto: item.produto?.toString() || null,
       codigoProduto: item.codigoProduto || '',
       nomeProduto: item.nomeProduto,
       quantidade: item.quantidade,
@@ -33,7 +33,7 @@ function formatar(preVenda) {
       exigeReceita: item.exigeReceita,
       receitaApresentada: item.receitaApresentada
     })),
-    criadoPor: preVenda.criadoPor.toString(),
+    criadoPor: preVenda.criadoPor?.toString() || null,
     atualizadoEm: preVenda.updatedAt,
     venda: preVenda.venda ? preVenda.venda.toString() : null
   };

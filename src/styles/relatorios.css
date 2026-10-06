@@ -1,0 +1,54 @@
+.relatorios-page { margin: 0; background: #edf8f4; color: #17352e; font-family: Arial, sans-serif; }
+.relatorios-page .container { width: min(100%, 1600px); max-width: 1600px; margin: 0 auto; padding: 26px 24px 48px; box-sizing: border-box; }
+.relatorios-page .page-intro { margin-bottom: 22px; }
+.relatorios-page .page-kicker { color: #087f5b; font-size: 11px; font-weight: 800; letter-spacing: .13em; }
+.relatorios-page .page-intro h1 { margin: 6px 0; color: #17352e; font-size: 28px; line-height: 1.2; }
+.relatorios-page .page-intro p { margin: 0; color: #60756e; font-size: 14px; }
+.relatorios-page .filter-card, .relatorios-page .chart-container, .relatorios-page .products-table-container { padding: 0; overflow: hidden; border: 1px solid #d5e8e2; border-radius: 14px; background: #fff; box-shadow: 0 10px 28px rgba(19, 69, 53, .07); }
+.relatorios-page .chart-container { height: auto; }
+.relatorios-page .filter-card { margin-bottom: 20px; }
+.relatorios-page .filter-title { margin: 0; padding: 18px 22px; border-bottom: 1px solid #d5e8e2; background: #f7faf9; color: #147d92; font-size: 18px; }
+.relatorios-page .filters-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 20px 22px 12px; }
+.relatorios-page .filter-group { min-width: 0; }
+.relatorios-page .filter-label { margin-bottom: 7px; color: #34584c; font-size: 13px; font-weight: 700; }
+.relatorios-page .filter-input { width: 100%; min-height: 44px; padding: 9px 12px; border: 1px solid #d5e8e2; border-radius: 9px; background: #fff; color: #17352e; font: inherit; font-size: 14px; box-sizing: border-box; }
+.relatorios-page select.filter-input { padding-right: 36px; }
+.relatorios-page .filter-input:focus { outline: 2px solid rgba(8, 127, 91, .2); border-color: #70bda1; }
+.relatorios-page .filter-actions { display: flex; justify-content: flex-end; padding: 0 22px 20px; }
+.relatorios-page .btn { min-height: 41px; padding: 0 15px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 700; }
+.relatorios-page .btn-primary { border: 1px solid #087f5b; background: #087f5b; color: #fff; }
+.relatorios-page .btn-primary:hover { background: #066b4d; }
+.relatorios-page .results-header { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin: 0 0 15px; padding: 0; }
+.relatorios-page .results-title { margin: 0; color: #17352e; font-size: 21px; }
+.relatorios-page .periodo-display { margin: 5px 0 0; color: #60756e; font-size: 13px; }
+.relatorios-page .export-buttons { display: flex; gap: 9px; }
+.relatorios-page .btn-export { background: #fff; color: #075f47; border: 1px solid #b9ddd1; white-space: nowrap; }
+.relatorios-page .btn-export:hover { background: #eaf7f2; }
+.relatorios-page .btn:disabled { opacity: .55; cursor: wait; }
+.relatorios-page .cards-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.relatorios-page .summary-card { min-width: 0; min-height: 135px; padding: 19px; border: 1px solid #d5e8e2; border-radius: 13px; background: #fff; box-shadow: 0 8px 24px rgba(19, 69, 53, .06); text-align: left; }
+.relatorios-page .summary-card:hover { transform: none; }
+.relatorios-page .summary-card::before { display: none; }
+.relatorios-page .card-icon { display: grid; place-items: center; width: 38px; height: 38px; margin: 0 0 11px; border-radius: 10px; background: #eaf7f2; font-size: 20px; }
+.relatorios-page .card-value { margin: 0; color: #17352e; font-size: clamp(18px, 2vw, 25px); font-weight: 800; line-height: 1.2; }
+.relatorios-page .card-label { margin-top: 5px; color: #536d62; font-size: 12px; font-weight: 700; text-transform: none; letter-spacing: normal; }
+.relatorios-page .card-detail { margin-top: 4px; color: #71857c; font-size: 11px; }
+.relatorios-page .charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 20px; }
+.relatorios-page .chart-title { margin: 0; padding: 17px 21px; border-bottom: 1px solid #d5e8e2; background: #f7faf9; color: #147d92; font-size: 18px; }
+.relatorios-page .chart-wrapper { height: auto; min-height: 260px; max-height: 460px; margin: 0; padding: 20px; overflow: auto; }
+.relatorios-page .products-table-container { margin-bottom: 20px; }
+.relatorios-page .products-table { width: calc(100% - 42px); margin: 20px 21px; border: 1px solid #d5e8e2; border-radius: 10px; border-collapse: separate; border-spacing: 0; overflow: hidden; }
+.relatorios-page .products-table th, .relatorios-page .products-table td { padding: 13px 14px; border-bottom: 1px solid #edf2ef; text-align: left; font-size: 13px; }
+.relatorios-page .products-table th { background: #eaf5f0; color: #075f47; font-size: 12px; font-weight: 750; }
+.relatorios-page .products-table tbody tr:last-child td { border-bottom: 0; }
+.relatorios-page .products-table tbody tr:hover td { background: #f8fbf9; }
+.relatorios-page #total-retiradas-display { margin: 0 21px 21px !important; color: #34584c; font-size: 14px !important; }
+.relatorios-page .error-alert { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #f0c9d0; border-radius: 9px; background: #fff3f4; color: #a33a4e; font-size: 13px; }
+.relatorios-page .simple-chart { display: grid; gap: 12px; align-content: center; height: 100%; }
+.relatorios-page .simple-chart-row { display: grid; grid-template-columns: minmax(75px, 120px) 1fr minmax(80px, auto); align-items: center; gap: 10px; font-size: 12px; color: #34584c; }
+.relatorios-page .simple-chart-track { height: 13px; border-radius: 20px; background: #eaf5f0; overflow: hidden; }
+.relatorios-page .simple-chart-bar { display: block; height: 100%; border-radius: inherit; background: #087f5b; }
+.relatorios-page .simple-chart-value { font-weight: 700; text-align: right; }
+@media (max-width: 1050px) { .relatorios-page .cards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .relatorios-page .filters-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .relatorios-page .container { padding: 16px 12px 28px; } .relatorios-page .cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .relatorios-page .charts-grid { grid-template-columns: 1fr; } .relatorios-page .results-header { align-items: flex-start; flex-direction: column; } .relatorios-page .products-table-container { overflow-x: auto; } .relatorios-page .products-table { min-width: 550px; } }
+@media (max-width: 480px) { .relatorios-page .filters-grid { grid-template-columns: 1fr; } .relatorios-page .cards-grid { grid-template-columns: 1fr; } .relatorios-page .export-buttons { width: 100%; } .relatorios-page .export-buttons .btn { flex: 1; } }

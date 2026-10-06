@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>  <meta charset="UTF-8">
+<head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Clientes - FarmaVida PDV</title>
   <link rel="stylesheet" href="../styles/pharmacy-theme.css">
@@ -440,17 +441,6 @@
     
     input.is-valid {
       border: 1px solid var(--success-color);
-    }
-    
-    .btn-lookup {
-      background: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 2px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-      margin-left: 5px;
     }
     
     .loading-spinner {
@@ -954,19 +944,21 @@
     }
   </style>
   <link rel="stylesheet" href="../styles/page-consistency.css">
+  <link rel="stylesheet" href="../styles/clientes.css">
 </head>
 <body>
   <header class="app-header">
-    <div class="app-header-title">Gerenciar Clientes</div>
+    <div class="app-header-title">Clientes<small>Cadastro e acompanhamento</small></div>
     <div class="app-header-actions"><button class="btn btn-voltar nav-home-btn" id="btnVoltar">Voltar ao Início</button></div>
   </header>
   
   <div class="container">
     <div id="statusMessage" class="status-message" style="display: none;"></div>
-    
+    <div class="page-intro"><span class="page-kicker">CADASTRO</span><h1>Gerenciar clientes</h1><p>Consulte cadastros e atualize dados, endereços e crédito em um só lugar.</p></div>
     <div class="top-bar">
       <div class="search-container">
-        <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nome, CPF/CNPJ ou telefone...">
+        <label class="visually-hidden" for="searchInput">Buscar clientes</label>
+        <input type="search" id="searchInput" class="search-input" placeholder="Buscar por nome, CPF/CNPJ ou telefone" autocomplete="off">
         <button id="btnSearch" class="btn btn-primary">
           <i class="fas fa-search"></i>
           Buscar
@@ -978,30 +970,38 @@
       </button>
     </div>
     
-    <div class="grid-layout">
-      <div class="card">
+    <div class="grid-layout single-col">
+      <div class="card clients-card">
         <div class="card-header">
-          <h2>Lista de Clientes</h2>
+          <div><h2>Lista de clientes</h2><p id="clientesCount" aria-live="polite">Carregando clientes...</p></div>
         </div>
-        <div class="card-body">
-          <div id="clientesList" class="clients-list">
-            <div class="no-data">Carregando clientes...</div>
+        <div class="card-body clients-card-body">
+          <div class="clients-table-wrap">
+            <table class="clients-table">
+              <thead><tr><th>Cliente</th><th>CPF/CNPJ</th><th>Contato</th><th>Tipo</th><th>Situação</th><th>Ações</th></tr></thead>
+              <tbody id="clientesList"><tr><td colspan="6" class="no-data">Carregando clientes...</td></tr></tbody>
+            </table>
           </div>
         </div>
       </div>
       
-      <div class="card" id="clienteFormCard">        <div class="card-header">
-          <h2 id="detailsTitle">Detalhes do Cliente</h2>
-          <div class="client-detail-actions" id="clientDetailActions">
-            <button type="button" id="btnExcluirClienteAtual" class="btn btn-danger">
-              <i class="fas fa-trash"></i> Excluir
-            </button>
+      <div class="client-editor" id="clientEditor" role="dialog" aria-modal="true" aria-labelledby="detailsTitle" hidden>
+      <div class="card" id="clienteFormCard"><div class="card-header">
+          <div><h2 id="detailsTitle">Detalhes do cliente</h2><p>Confira e atualize os dados do cadastro.</p></div>
+          <div class="client-editor-header-actions">
+            <div class="client-detail-actions" id="clientDetailActions" hidden>
+              <button type="button" id="btnExcluirClienteAtual" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Excluir
+              </button>
+            </div>
+            <button type="button" class="client-editor-close" id="closeClientEditor" aria-label="Fechar cadastro do cliente">&times;</button>
           </div>
         </div><div class="card-body">
-          <div class="tabs" id="detailsTabs">
-            <div class="tab active" data-tab="info">Informações</div>
-            <div class="tab" data-tab="endereco">Endereços</div>
-            <div class="tab" data-tab="credito">Crédito</div>
+          <div id="editorMessage" class="status-message" role="status" style="display: none;"></div>
+          <div class="tabs" id="detailsTabs" role="tablist">
+            <button type="button" class="tab active" data-tab="info">Informações</button>
+            <button type="button" class="tab" data-tab="endereco">Endereços</button>
+            <button type="button" class="tab" data-tab="credito">Crédito</button>
           </div>
           
           <!-- Aba de Informações -->
@@ -1033,7 +1033,7 @@
                   <div class="form-group">
                     <label for="cpfCnpj"><span id="labelCpfCnpj">CPF</span>:</label>
                     <div class="input-with-icon">
-                      <input type="text" id="cpfCnpj" placeholder="CPF" maxlength="18">
+                      <input type="text" id="cpfCnpj" placeholder="000.000.000-00" maxlength="14" inputmode="numeric">
                       <div class="loading-spinner" id="cpfCnpjSpinner"></div>
                       <i class="input-icon fas fa-check-circle" id="cpfCnpjIcon" style="display: none;"></i>
                     </div>
@@ -1128,10 +1128,9 @@
                   <div class="form-group">
                     <label for="cep">CEP:</label>
                     <div class="input-with-icon">
-                      <input type="text" id="cep" placeholder="00000-000" maxlength="9">
+                      <input type="text" id="cep" placeholder="00000-000" maxlength="9" inputmode="numeric">
                       <div class="loading-spinner" id="cepSpinner"></div>
                     </div>
-                    <button type="button" id="btnBuscarCep" class="btn-lookup">Buscar</button>
                   </div>
                 </div>
               </div>
@@ -1232,6 +1231,7 @@
                 <button type="button" id="btnCancelarEndereco" class="btn btn-secondary">Cancelar</button>
                 <button type="submit" id="btnSalvarEndereco" class="btn btn-primary">Adicionar</button>
               </div>            </form>
+            <div class="address-save-actions"><span>Depois de adicionar ou editar um endereço, salve o cadastro para confirmar.</span><button class="btn btn-primary" id="saveFromAddressBtn" type="submit" form="clienteForm">Salvar cliente</button></div>
           </div>
           
           <!-- Aba de Crédito -->
@@ -1323,6 +1323,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
   
@@ -1406,6 +1407,7 @@
                  style="font-size: 18px; font-weight: bold; text-align: right;">
           <small style="color: #999;">Digite o valor a ser adicionado (ex: 50,00)</small>
         </div>
+        <div id="creditoExtraErro" class="status-message error" role="alert" style="display: none;"></div>
         
         <div class="form-group">
           <label for="modalObservacao">Observação:</label>
@@ -1429,6 +1431,5 @@
     <!-- Scripts de manipulação de clientes -->
   <script src="../utils/electronInputFixer.js"></script>
   <script src="../scripts/clientes.js"></script>
-  <script src="../scripts/clientes-app.js"></script>
 </body>
 </html>

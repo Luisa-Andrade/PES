@@ -4,7 +4,7 @@ const { getDeliveryConfig, formatAddress } = require('./deliveryConfig');
 class RouteService {
   validateConfig(config) {
     if (!config.mapsApiKey) {
-      throw new Error('Configure MAPS_API_KEY para calcular a distância da entrega.');
+      throw new Error('Configure MAPS_API_KEY no arquivo .env da raiz do projeto e reinicie o aplicativo para calcular a entrega.');
     }
     if (!config.pharmacyAddress.logradouro || !config.pharmacyAddress.cidade || !config.pharmacyAddress.estado) {
       throw new Error('Configure o endereço da farmácia nas variáveis FARMACIA_ENDERECO, FARMACIA_CIDADE e FARMACIA_UF.');
@@ -39,15 +39,31 @@ class RouteService {
   }
 
   async calculateWithGoogle(origin, destination, apiKey) {
-    const response = await axios.get('https://maps.googleapis.com/maps/api/distancematrix/json', {
-      params: { origins: origin, destinations: destination, mode: 'driving', language: 'pt-BR', units: 'metric', key: apiKey },
-      timeout: 15000
-    });
-    const element = response.data?.rows?.[0]?.elements?.[0];
-    if (response.data?.status !== 'OK' || element?.status !== 'OK' || !Number.isFinite(element?.distance?.value)) {
-      throw new Error(response.data?.error_message || 'O Google Maps não retornou uma rota válida para o endereço.');
+    let response;
+    try {
+      response = await axios.post('https://routes.googleapis.com/directions/v2:computeRoutes', {
+        origin: { address: origin },
+        destination: { address: destination },
+        travelMode: 'DRIVE',
+        languageCode: 'pt-BR',
+        units: 'METRIC'
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
+          'X-Goog-FieldMask': 'routes.distanceMeters'
+        },
+        timeout: 15000
+      });
+    } catch (error) {
+      if (error.response?.status === 403) {
+        throw new Error('A chave do Google não tem acesso à Routes API. Confira a API habilitada, as restrições da chave e o faturamento do projeto.');
+      }
+      throw new Error('Não foi possível consultar a rota no Google Maps. Verifique a conexão e os endereços.');
     }
-    return element.distance.value / 1000;
+    const meters = response.data?.routes?.[0]?.distanceMeters;
+    if (!Number.isFinite(meters)) throw new Error('O Google Maps não retornou uma rota válida para o endereço.');
+    return meters / 1000;
   }
 
   async calculateDistance(destinationAddress) {

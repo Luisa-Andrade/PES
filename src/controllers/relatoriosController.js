@@ -8,6 +8,7 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 const fs = require('fs'); // Usando fs diretamente, não fs.promises
+const { intervaloLocal } = require('../utils/caixa');
 
 class RelatoriosController {
   constructor() {
@@ -32,33 +33,8 @@ class RelatoriosController {
       
       // Filtrar por data
       if (filtros.dataInicio || filtros.dataFim) {
-        query.dataVenda = {};
-        
-        if (filtros.dataInicio) {
-          try {
-            const dataInicio = new Date(filtros.dataInicio);
-            if (!isNaN(dataInicio)) {
-              dataInicio.setHours(0, 0, 0, 0);
-              query.dataVenda.$gte = dataInicio;
-              console.log(`Filtro de data início: ${dataInicio.toISOString()}`);
-            }
-          } catch (err) {
-            console.error('Data de início inválida:', filtros.dataInicio);
-          }
-        }
-        
-        if (filtros.dataFim) {
-          try {
-            const dataFim = new Date(filtros.dataFim);
-            if (!isNaN(dataFim)) {
-              dataFim.setHours(23, 59, 59, 999);
-              query.dataVenda.$lte = dataFim;
-              console.log(`Filtro de data fim: ${dataFim.toISOString()}`);
-            }
-          } catch (err) {
-            console.error('Data de fim inválida:', filtros.dataFim);
-          }
-        }
+        if (!filtros.dataInicio || !filtros.dataFim) throw new Error('Informe o início e o fim do período.');
+        query.dataVenda = intervaloLocal(filtros.dataInicio, filtros.dataFim);
       }
       
       // Filtrar por vendedor com melhor validação
@@ -69,10 +45,10 @@ class RelatoriosController {
             query.vendedor = new mongoose.Types.ObjectId(filtros.vendedor);
             console.log(`Filtro por vendedor ID: ${filtros.vendedor}`);
           } else {
-            console.warn('ID de vendedor inválido ignorado:', filtros.vendedor);
+            throw new Error('Vendedor inválido.');
           }
         } catch (err) {
-          console.error('Erro ao processar ID do vendedor:', err);
+          throw err;
         }
       }
       
@@ -184,23 +160,7 @@ class RelatoriosController {
       
       // Buscar retiradas no mesmo período
       let queryRetirada = { ativo: true };
-      if (filtros.dataInicio || filtros.dataFim) {
-        queryRetirada.dataCriacao = {};
-        if (filtros.dataInicio) {
-          const dIni = new Date(filtros.dataInicio);
-          if (!isNaN(dIni)) {
-            dIni.setHours(0,0,0,0);
-            queryRetirada.dataCriacao.$gte = dIni;
-          }
-        }
-        if (filtros.dataFim) {
-          const dFim = new Date(filtros.dataFim);
-          if (!isNaN(dFim)) {
-            dFim.setHours(23,59,59,999);
-            queryRetirada.dataCriacao.$lte = dFim;
-          }
-        }
-      }
+      if (filtros.dataInicio && filtros.dataFim) queryRetirada.dataCriacao = intervaloLocal(filtros.dataInicio, filtros.dataFim);
 
       const retiradas = await Retirada.find(queryRetirada).sort({ dataCriacao: -1 }).lean().exec();
       const totalRetiradas = retiradas.reduce((s, r) => s + (parseFloat(r.valor) || 0), 0);
@@ -220,16 +180,7 @@ class RelatoriosController {
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
       
-      // Retornar dados vazios em vez de lançar exceção
-      return {
-        totalVendas: 0,
-        ticketMedio: 0,
-        qtdVendas: 0,
-        totalItens: 0,
-        produtosMaisVendidos: [],
-        vendasPorDia: [],
-        vendasPorMetodo: []
-      };
+      return { error: true, message: error.message || 'Falha ao gerar relatório.' };
     }
   }
   

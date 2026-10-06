@@ -287,7 +287,12 @@ function setupIpcHandlers() {
   secureHandle('usuarios:getById', (_event, id) => usuariosController.getUsuarioById(id));
   secureHandle('usuarios:create', (_event, data) => usuariosController.createUsuario(data));
   secureHandle('usuarios:update', (_event, id, data) => usuariosController.updateUsuario(id, data));
-  secureHandle('usuarios:toggleStatus', (_event, id, ativo) => usuariosController.toggleUsuarioStatus(id, ativo));
+  secureHandle('usuarios:toggleStatus', (_event, id, ativo) => {
+    if (ativo === false && id === authController.getCurrentUser()?.id) {
+      return { success: false, message: 'Você não pode desativar sua própria conta.' };
+    }
+    return usuariosController.toggleUsuarioStatus(id, ativo);
+  });
   
   // Relatórios handlers aprimorados
   secureHandle('relatorios:gerar', async (event, filtros) => {
@@ -827,23 +832,38 @@ function setupIpcHandlers() {
   });
 
   // Retirada de dinheiro handlers
+  const { calcularSaldoCaixa, intervaloLocal, validarRetirada } = require('../utils/caixa');
+  let filaRetiradas = Promise.resolve();
   secureHandle('registrar-retirada', async (event, dadosRetirada) => {
+    const registrar = async () => {
     try {
-      console.log('Handler registrar-retirada recebido com dados:', dadosRetirada);
-      
-      // Aqui você pode salvar no banco de dados
-      // Por enquanto, apenas retorna sucesso
+      const valor = Number(dadosRetirada?.valor);
+      const erroValor = validarRetirada(valor);
+      if (erroValor) return { sucesso: false, mensagem: erroValor };
+      const usuarioAtual = authController.getCurrentUser();
+      if (!usuarioAtual?.id || !usuarioAtual?.nome) {
+        return { sucesso: false, mensagem: 'Usuário responsável inválido.' };
+      }
       const Retirada = require('../models/retirada');
+      const Venda = require('../models/venda');
+      const [vendas, retiradas] = await Promise.all([
+        Venda.find({ status: { $ne: 'cancelada' }, 'pagamento.metodo': { $in: ['dinheiro', 'fiado'] } }),
+        Retirada.find({ ativo: true })
+      ]);
+      const { saldo } = calcularSaldoCaixa(vendas, retiradas);
+      const erroSaldo = validarRetirada(valor, saldo);
+      if (erroSaldo) return { sucesso: false, mensagem: erroSaldo };
+      const agora = new Date();
       
       const novaRetirada = new Retirada({
-        dataRetirada: dadosRetirada.dataRetirada,
-        horaRetirada: dadosRetirada.horaRetirada,
-        valor: dadosRetirada.valor,
-        responsavel: dadosRetirada.responsavel,
+        dataRetirada: agora,
+        horaRetirada: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+        valor,
+        responsavel: usuarioAtual.nome,
         motivo: dadosRetirada.motivo,
         observacoes: dadosRetirada.observacoes,
-        usuarioId: dadosRetirada.usuarioId,
-        dataCriacao: dadosRetirada.dataCriacao ? new Date(dadosRetirada.dataCriacao) : new Date()
+        usuarioId: usuarioAtual.id,
+        dataCriacao: agora
       });
       
       await novaRetirada.save();
@@ -866,6 +886,10 @@ function setupIpcHandlers() {
         mensagem: `Falha ao registrar retirada: ${error.message}`
       };
     }
+    };
+    const pendente = filaRetiradas.then(registrar);
+    filaRetiradas = pendente.catch(() => {});
+    return pendente;
   });
 
   secureHandle('listar-retiradas', async (event, filtros) => {
@@ -873,19 +897,9 @@ function setupIpcHandlers() {
       console.log('Handler listar-retiradas recebido com filtros:', filtros || 'nenhum');
       const Retirada = require('../models/retirada');
       
-      let query = {};
+      let query = { ativo: true };
       if (filtros && filtros.dataInicio && filtros.dataFim) {
-        const dataInicio = new Date(filtros.dataInicio);
-        const dataFim = new Date(filtros.dataFim);
-        
-        // Configurar início do dia e fim do dia
-        dataInicio.setHours(0, 0, 0, 0);
-        dataFim.setHours(23, 59, 59, 999);
-        
-        query.dataCriacao = {
-          $gte: dataInicio,
-          $lte: dataFim
-        };
+        query.dataCriacao = intervaloLocal(filtros.dataInicio, filtros.dataFim);
       }
       
       console.log('Query para retiradas:', JSON.stringify(query));
@@ -938,29 +952,26 @@ function setupIpcHandlers() {
       const Venda = require('../models/venda');
       const Retirada = require('../models/retirada');
       
-      let queryVendas = { status: { $ne: 'cancelada' } };
-      let queryRetiradas = {};
+      let queryVendas = { status: { $ne: 'cancelada' }, 'pagamento.metodo': { $in: ['dinheiro', 'fiado'] } };
+      let queryRetiradas = { ativo: true };
+      let intervalo = null;
       
       // Aplicar filtros de data se fornecidos
       if (filtros && filtros.dataInicio && filtros.dataFim) {
-        const dataInicio = new Date(filtros.dataInicio);
-        const dataFim = new Date(filtros.dataFim);
-        
-        // Configurar início do dia e fim do dia
-        dataInicio.setHours(0, 0, 0, 0);
-        dataFim.setHours(23, 59, 59, 999);
-        
-        // Para vendas, usar dataVenda
-        queryVendas.dataVenda = {
-          $gte: dataInicio,
-          $lte: dataFim
+        intervalo = intervaloLocal(filtros.dataInicio, filtros.dataFim);
+        // Uma venda fiado pode ter sido feita antes do período e paga dentro dele.
+        queryVendas = {
+          status: { $ne: 'cancelada' },
+          $or: [
+            { 'pagamento.metodo': 'dinheiro', dataVenda: intervalo },
+            { 'pagamento.metodo': 'fiado', 'pagamento.fiado.historicoPagamentos': {
+              $elemMatch: { formaPagamento: 'dinheiro', data: intervalo }
+            } }
+          ]
         };
         
         // Para retiradas, usar dataCriacao
-        queryRetiradas.dataCriacao = {
-          $gte: dataInicio,
-          $lte: dataFim
-        };
+        queryRetiradas.dataCriacao = intervalo;
         
         console.log('Query para vendas do período:', JSON.stringify(queryVendas));
         console.log('Query para retiradas do período:', JSON.stringify(queryRetiradas));
@@ -968,13 +979,9 @@ function setupIpcHandlers() {
       
       // Buscar vendas do período
       const vendas = await Venda.find(queryVendas);
-      const totalVendas = vendas.reduce((sum, venda) => sum + (venda.total || venda.valorTotal || 0), 0);
-      
       // Buscar retiradas do período
       const retiradas = await Retirada.find(queryRetiradas);
-      const totalRetiradas = retiradas.reduce((sum, retirada) => sum + (retirada.valor || 0), 0);
-      
-      const saldoPeriodo = totalVendas - totalRetiradas;
+      const { totalVendas, totalRetiradas, saldo: saldoPeriodo } = calcularSaldoCaixa(vendas, retiradas, intervalo);
       
       console.log(`Saldo do período: Vendas=${totalVendas}, Retiradas=${totalRetiradas}, Saldo=${saldoPeriodo}`);
       
@@ -1176,21 +1183,12 @@ function setupIpcHandlers() {
       
       // Total de vendas (usando mesmos critérios do obter-total-vendas)
       const todasVendas = await Venda.find({ 
-        status: { $ne: 'cancelada' }
+        status: { $ne: 'cancelada' }, 'pagamento.metodo': { $in: ['dinheiro', 'fiado'] }
       });
-      const totalVendas = todasVendas.reduce((sum, venda) => {
-        const valor = venda.valorTotal !== undefined ? venda.valorTotal : (venda.total || 0);
-        return sum + parseFloat(valor || 0);
-      }, 0);
       
       // Total de retiradas (usar critério similar - sem ativo=true se não existir)
-      const todasRetiradas = await Retirada.find({});
-      const totalRetiradas = todasRetiradas.reduce((sum, retirada) => {
-        return sum + parseFloat(retirada.valor || 0);
-      }, 0);
-      
-      // Saldo = vendas - retiradas
-      const saldo = totalVendas - totalRetiradas;
+      const todasRetiradas = await Retirada.find({ ativo: true });
+      const { totalVendas, totalRetiradas, saldo } = calcularSaldoCaixa(todasVendas, todasRetiradas);
       
       console.log(`Handler obter-saldo-caixa: Vendas=${totalVendas}, Retiradas=${totalRetiradas}, Saldo=${saldo}`);
       
@@ -1258,11 +1256,9 @@ app.on('will-quit', async () => {
   
   // Log de estatísticas finais
   const stats = dbConnection.getPerformanceStats();
-  const cacheStats = require('../utils/cache').getStats();
   
   console.log('Estatísticas de Performance:');
   console.log(`- Database: ${stats.queryCount} queries, ${stats.slowQueries} lentas`);
-  console.log(`- Cache: ${cacheStats.hitRate} hit rate, ${cacheStats.size} itens`);
   
   await dbConnection.disconnect();
 });

@@ -61,6 +61,11 @@ class UsuariosController {
   async createUsuario(userData) {
     try {
       await dbConnection.ensureConnected();
+      if (!userData?.nome?.trim() || !userData?.email?.trim()) {
+        return { success: false, message: 'Informe nome e e-mail.' };
+      }
+      userData.nome = userData.nome.trim();
+      userData.email = userData.email.trim().toLowerCase();
       
       // Verificar se o email já existe
       const emailExists = await this.User.findOne({ email: userData.email });
@@ -69,8 +74,8 @@ class UsuariosController {
       }
       
       // Verificar se a senha foi fornecida
-      if (!userData.senha) {
-        return { success: false, message: 'A senha é obrigatória' };
+      if (!userData.senha || userData.senha.length < 6) {
+        return { success: false, message: 'A senha deve ter pelo menos 6 caracteres.' };
       }
       if (!ROLES.includes(userData.tipo)) {
         return { success: false, message: 'Perfil de acesso inválido' };
@@ -106,6 +111,14 @@ class UsuariosController {
   async updateUsuario(id, userData) {
     try {
       await dbConnection.ensureConnected();
+      if (!userData?.nome?.trim() || !userData?.email?.trim()) {
+        return { success: false, message: 'Informe nome e e-mail.' };
+      }
+      userData.nome = userData.nome.trim();
+      userData.email = userData.email.trim().toLowerCase();
+      if (userData.senha && userData.senha.length < 6) {
+        return { success: false, message: 'A senha deve ter pelo menos 6 caracteres.' };
+      }
       if (!ROLES.includes(userData.tipo)) {
         return { success: false, message: 'Perfil de acesso inválido' };
       }

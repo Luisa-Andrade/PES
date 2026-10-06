@@ -50,18 +50,15 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Formatação de valores
   const formatarMoeda = (valor) => {
-    const valorNumerico = parseFloat(valor);
-    if (isNaN(valorNumerico)) {
-      console.error('Valor inválido para formatarMoeda:', valor);
-      return 'R$ 0,00';
-    }
-    return `R$ ${valorNumerico.toFixed(2).replace('.', ',')}`;
+    const numero = Number(valor);
+    return (Number.isFinite(numero) ? numero : 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
+  const dataLocal = data => `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
   
   const formatarDataExibicao = (data) => {
     try {
       if (!data) return '';
-      const dataObj = new Date(data);
+      const dataObj = /^\d{4}-\d{2}-\d{2}$/.test(data) ? new Date(`${data}T12:00:00`) : new Date(data);
       if (isNaN(dataObj.getTime())) {
         return '';
       }
@@ -127,13 +124,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Configurar datas padrão caso não estejam definidas
         if (!dataInicio.value) {
           const dataDefault = new Date();
-          dataDefault.setDate(dataDefault.getDate() - 7);
-          dataInicio.value = dataDefault.toISOString().split('T')[0];
+          dataDefault.setDate(dataDefault.getDate() - 6);
+          dataInicio.value = dataLocal(dataDefault);
         }
         
         if (!dataFim.value) {
           const hoje = new Date();
-          dataFim.value = hoje.toISOString().split('T')[0];
+          dataFim.value = dataLocal(hoje);
         }
       } else {
         periodoPersonalizadoCampos.forEach(campo => {
@@ -187,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (error) {
       console.error('Erro ao carregar vendedores:', error);
-      vendedorSelect.innerHTML = '<option value="">Erro: ' + error.message + '</option>';
+      vendedorSelect.replaceChildren(new Option('Erro ao carregar vendedores', ''));
     }
   };
   
@@ -211,63 +208,30 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       
       case '7dias':
-        inicio.setDate(hoje.getDate() - 7);
+        inicio.setDate(hoje.getDate() - 6);
         inicio.setHours(0, 0, 0, 0);
         fim.setHours(23, 59, 59, 999);
         break;
       
       case '30dias':
-        inicio.setDate(hoje.getDate() - 30);
+        inicio.setDate(hoje.getDate() - 29);
         inicio.setHours(0, 0, 0, 0);
         fim.setHours(23, 59, 59, 999);
         break;
       
       case 'personalizado':
-        if (elementoExiste(dataInicio) && dataInicio.value) {
-          try {
-            inicio = new Date(dataInicio.value);
-            inicio.setHours(0, 0, 0, 0);
-          } catch (e) {
-            console.error('Erro ao definir data de início:', e);
-          }
-        }
-        
-        if (elementoExiste(dataFim) && dataFim.value) {
-          try {
-            fim = new Date(dataFim.value);
-            fim.setHours(23, 59, 59, 999);
-          } catch (e) {
-            console.error('Erro ao definir data de fim:', e);
-          }
-        }
+        if (!dataInicio.value || !dataFim.value) throw new Error('Informe as duas datas do período.');
+        if (dataInicio.value > dataFim.value) throw new Error('A data inicial deve ser anterior à data final.');
+        return { inicio: dataInicio.value, fim: dataFim.value };
         break;
     }
     
     // Verificar se as datas são válidas
-    if (isNaN(inicio.getTime())) {
-      console.error('Data de início inválida');
-      inicio = new Date();
-      inicio.setDate(hoje.getDate() - 7); // Fallback para 7 dias atrás
-      inicio.setHours(0, 0, 0, 0);
-    }
-    
-    if (isNaN(fim.getTime())) {
-      console.error('Data de fim inválida');
-      fim = new Date(); // Fallback para hoje
-      fim.setHours(23, 59, 59, 999);
-    }
-    
-    // Garantir que início não é posterior ao fim
-    if (inicio > fim) {
-      console.warn('Data início maior que fim, ajustando...');
-      const temp = inicio;
-      inicio = fim;
-      fim = temp;
-    }
+    if (isNaN(inicio.getTime()) || isNaN(fim.getTime())) throw new Error('Período inválido.');
     
     // Formatar para string
-    const inicioStr = inicio.toISOString().split('T')[0];
-    const fimStr = fim.toISOString().split('T')[0];
+    const inicioStr = dataLocal(inicio);
+    const fimStr = dataLocal(fim);
     
     console.log(`Período definido: ${inicioStr} até ${fimStr}`);
     
@@ -286,7 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    const periodo = definirPeriodo();
+    let periodo;
+    try { periodo = definirPeriodo(); }
+    catch (error) { periodoExibido.textContent = error.message; return; }
     
     let texto = 'Exibindo dados ';
     
@@ -349,6 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Verificar API de relatórios
       if (!verificarAPIRelatorios()) return;
       
+      const periodo = definirPeriodo();
+      dadosRelatorio = null;
+      if (btnPDF) btnPDF.disabled = true;
+      if (btnExcel) btnExcel.disabled = true;
       // Feedback visual de início do processamento
       btnGerar.disabled = true;
       btnGerar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
@@ -357,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
       exibirLoading();
       
       // Obter dados para filtro
-      const periodo = definirPeriodo();
       currentVendedor = elementoExiste(vendedorSelect) ? vendedorSelect.value : '';
       
       // Atualizar texto do período
@@ -370,23 +339,16 @@ document.addEventListener('DOMContentLoaded', () => {
         vendedor: currentVendedor || null
       });
       
-      // Chamar API com timeout para evitar espera infinita
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Tempo de espera esgotado')), 30000));
-      
-      const resultadoPromise = window.relatoriosAPI.gerarRelatorio({
+      const resultado = await window.relatoriosAPI.gerarRelatorio({
         dataInicio: periodo.inicio,
         dataFim: periodo.fim,
         vendedor: currentVendedor || null
       });
       
-      // Esperar pela primeira promessa a resolver ou rejeitar
-      const resultado = await Promise.race([resultadoPromise, timeoutPromise]);
-      
       console.log("Resposta recebida do servidor:", resultado);
       
       // Verificar erro na resposta
-      if (resultado && resultado.error === true) {
+      if (!resultado || resultado.error === true) {
         throw new Error(resultado.message || 'Erro desconhecido ao gerar relatório');
       }
       
@@ -399,16 +361,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Atualizar estado global
       dadosRelatorio = resultado;
+      document.querySelector('.error-alert')?.remove();
+      if (btnPDF) btnPDF.disabled = false;
+      if (btnExcel) btnExcel.disabled = false;
       
       // Atualizar UI com os dados recebidos
-      atualizarDadosUI(resultado);
+      await atualizarDadosUI(resultado);
       
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
-      mostrarErro(error.message || 'Erro ao gerar relatório');
-      
       // Resetar UI para valores vazios
       resetarUI();
+      mostrarErro(error.message || 'Erro ao gerar relatório');
     } finally {
       // Restaurar botão de gerar relatório
       if (elementoExiste(btnGerar)) {
@@ -416,61 +380,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnGerar.innerHTML = '<i class="fas fa-sync-alt"></i> Gerar Relatório';
       }
     }
-  };
-  
-  // Exibir dados de exemplo para teste
-  const gerarDadosExemplo = () => {
-    const hoje = new Date();
-    const diasExemplo = [];
-    
-    // Gerar dados para 7 dias
-    for (let i = 6; i >= 0; i--) {
-      const data = new Date();
-      data.setDate(hoje.getDate() - i);
-      diasExemplo.push({
-        data: data.toISOString().split('T')[0],
-        total: Math.round((Math.random() * 5000 + 1000) * 100) / 100,
-        quantidade: Math.floor(Math.random() * 20) + 5
-      });
-    }
-    
-    const produtosExemplo = [
-      { codigo: '001', nome: 'Dipirona 500mg', quantidade: 48, total: 576 },
-      { codigo: '002', nome: 'Paracetamol 750mg', quantidade: 35, total: 525 },
-      { codigo: '003', nome: 'Vitamina C 1g', quantidade: 25, total: 625 },
-      { codigo: '004', nome: 'Shampoo Neutro', quantidade: 18, total: 432 },
-      { codigo: '005', nome: 'Curativo Adesivo', quantidade: 42, total: 294 }
-    ];
-    
-    const metodosExemplo = [
-      { metodo: 'dinheiro', total: 4500, quantidade: 15 },
-      { metodo: 'cartao_credito', total: 3800, quantidade: 12 },
-      { metodo: 'cartao_debito', total: 2200, quantidade: 8 },
-      { metodo: 'pix', total: 1800, quantidade: 5 },
-      { metodo: 'fiado', total: 900, quantidade: 3 }
-    ];
-    
-    const totalVendasValor = metodosExemplo.reduce((acc, item) => acc + item.total, 0);
-    const totalVendasQtd = metodosExemplo.reduce((acc, item) => acc + item.quantidade, 0);
-    const ticketMedioValor = totalVendasQtd > 0 ? totalVendasValor / totalVendasQtd : 0;
-    const totalItensValor = produtosExemplo.reduce((acc, item) => acc + item.quantidade, 0);
-    
-    return {
-      totalVendas: totalVendasValor,
-      ticketMedio: ticketMedioValor,
-      qtdVendas: totalVendasQtd,
-      totalItens: totalItensValor,
-      produtosMaisVendidos: produtosExemplo,
-      vendasPorDia: diasExemplo,
-      vendasPorMetodo: metodosExemplo
-    };
-  };
-  
-  // Atualizar interface com dados de exemplo para teste
-  const exibirDadosExemplo = () => {
-    const dados = gerarDadosExemplo();
-    atualizarDadosUI(dados);
-    dadosRelatorio = dados;
   };
   
   // Exibir indicadores de carregamento
@@ -496,7 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   
   // Atualizar interface com os dados recebidos
-  const atualizarDadosUI = (dados) => {
+  const atualizarDadosUI = async (dados) => {
     if (!dados) {
       console.error("Dados nulos recebidos");
       mostrarErro("Dados não disponíveis");
@@ -529,15 +438,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Carregar retiradas
-    if (elementoExiste(retiradasTable)) {
-      carregarRetiradas(periodo.inicio, periodo.fim);
-    }
-    
-    // Carregar total do caixa com o mesmo período
-    if (elementoExiste(totalCaixa)) {
-      console.log('Chamando carregarTotalCaixa com período:', { inicio: periodo.inicio, fim: periodo.fim });
-      carregarTotalCaixa(periodo.inicio, periodo.fim);
-    }
+    const adicionais = [];
+    if (elementoExiste(retiradasTable)) adicionais.push(carregarRetiradas(periodo.inicio, periodo.fim));
+    if (elementoExiste(totalCaixa)) adicionais.push(carregarTotalCaixa(periodo.inicio, periodo.fim));
     
     if (elementoExiste(chartVendasDia)) {
       if (Array.isArray(dados.vendasPorDia)) {
@@ -556,16 +459,22 @@ document.addEventListener('DOMContentLoaded', () => {
         chartPagamentos.innerHTML = '<div class="msg-container">Não há dados de pagamento para exibir</div>';
       }
     }
+    await Promise.all(adicionais);
   };
   
   // Resetar interface para valores vazios
   const resetarUI = () => {
     dadosRelatorio = null;
+    if (btnPDF) btnPDF.disabled = true;
+    if (btnExcel) btnExcel.disabled = true;
     
     if (elementoExiste(totalVendas)) totalVendas.textContent = formatarMoeda(0);
     if (elementoExiste(ticketMedio)) ticketMedio.textContent = formatarMoeda(0);
     if (elementoExiste(qtdVendas)) qtdVendas.textContent = '0';
     if (elementoExiste(totalItens)) totalItens.textContent = '0';
+    if (elementoExiste(totalCaixa)) totalCaixa.textContent = '—';
+    if (elementoExiste(detailCaixa)) detailCaixa.textContent = 'Saldo indisponível';
+    atualizarTabelaRetiradas([]);
     
     if (elementoExiste(produtosTable)) {
       produtosTable.innerHTML = '<tr><td colspan="4" class="msg-container">Nenhum dado disponível</td></tr>';
@@ -606,23 +515,11 @@ document.addEventListener('DOMContentLoaded', () => {
       container.insertBefore(errorAlert, container.firstChild);
     }
     
-    setTimeout(() => {
-      errorAlert.style.opacity = '0';
-      errorAlert.style.transition = 'opacity 0.5s';
-      setTimeout(() => {
-        if (errorAlert.parentNode) {
-          errorAlert.parentNode.removeChild(errorAlert);
-        }
-      }, 500);
-    }, 5000);
   };
   
   // Eventos para datas personalizadas
   if (elementoExiste(dataInicio)) {
     dataInicio.addEventListener('change', () => {
-      if (elementoExiste(dataFim) && dataFim.value && dataInicio.value > dataFim.value) {
-        dataFim.value = dataInicio.value;
-      }
       if (currentPeriod === 'personalizado') {
         atualizarTextoPeriodo();
       }
@@ -631,9 +528,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (elementoExiste(dataFim)) {
     dataFim.addEventListener('change', () => {
-      if (elementoExiste(dataInicio) && dataInicio.value && dataFim.value < dataInicio.value) {
-        dataInicio.value = dataFim.value;
-      }
       if (currentPeriod === 'personalizado') {
         atualizarTextoPeriodo();
       }
@@ -696,14 +590,43 @@ document.addEventListener('DOMContentLoaded', () => {
         row.classList.add('top-produto');
       }
       
-      row.innerHTML = `
-        <td>${produto.codigo || 'N/A'}</td>
-        <td>${produto.nome || 'Produto sem nome'}</td>
-        <td>${produto.quantidade || 0}</td>
-        <td>${formatarMoeda(produto.total || 0)}</td>
-      `;
+      [produto.codigo || 'N/A', produto.nome || 'Produto sem nome', produto.quantidade || 0, formatarMoeda(produto.total || 0)]
+        .forEach(valor => { const td = row.insertCell(); td.textContent = String(valor); });
       produtosTable.appendChild(row);
     });
+  };
+
+  const criarGraficoSimples = (container, dados, chave, rotulo) => {
+    container.replaceChildren();
+    const validos = (Array.isArray(dados) ? dados : []).filter(item => item && Number.isFinite(Number(item.total)) && Number(item.total) >= 0);
+    if (!validos.length) {
+      const vazio = document.createElement('div');
+      vazio.className = 'msg-container';
+      vazio.textContent = 'Sem dados para exibir';
+      container.appendChild(vazio);
+      return;
+    }
+    const maior = Math.max(...validos.map(item => Number(item.total)), 1);
+    const grafico = document.createElement('div');
+    grafico.className = 'simple-chart';
+    validos.forEach(item => {
+      const linha = document.createElement('div');
+      linha.className = 'simple-chart-row';
+      const nome = document.createElement('span');
+      nome.textContent = rotulo(item[chave]);
+      const trilha = document.createElement('div');
+      trilha.className = 'simple-chart-track';
+      const barra = document.createElement('span');
+      barra.className = 'simple-chart-bar';
+      barra.style.width = `${Math.max(1, Number(item.total) / maior * 100)}%`;
+      trilha.appendChild(barra);
+      const valor = document.createElement('span');
+      valor.className = 'simple-chart-value';
+      valor.textContent = formatarMoeda(item.total);
+      linha.append(nome, trilha, valor);
+      grafico.appendChild(linha);
+    });
+    container.appendChild(grafico);
   };
   
   // Criar gráfico de vendas por dia
@@ -715,8 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Verificar se Chart.js está disponível
     if (typeof Chart === 'undefined') {
-      console.error("Chart.js não está disponível");
-      chartVendasDia.innerHTML = '<div class="msg-container">Chart.js não está disponível</div>';
+      criarGraficoSimples(chartVendasDia, dados, 'data', formatarDataExibicao);
       return;
     }
     
@@ -849,7 +771,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (error) {
       console.error("Erro ao criar gráfico de vendas por dia:", error);
-      chartVendasDia.innerHTML = `<div class="msg-container">Erro ao criar gráfico: ${error.message}</div>`;
+      chartVendasDia.textContent = 'Erro ao criar gráfico.';
     }
   };
   
@@ -862,8 +784,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Verificar se Chart.js está disponível
     if (typeof Chart === 'undefined') {
-      console.error("Chart.js não está disponível");
-      chartPagamentos.innerHTML = '<div class="msg-container">Chart.js não está disponível</div>';
+      criarGraficoSimples(chartPagamentos, dados, 'metodo', formatarMetodo);
       return;
     }
     
@@ -964,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chartPagamentos.appendChild(subtitle);
     } catch (error) {
       console.error("Erro ao criar gráfico de pagamentos:", error);
-      chartPagamentos.innerHTML = `<div class="msg-container">Erro ao criar gráfico: ${error.message}</div>`;
+      chartPagamentos.textContent = 'Erro ao criar gráfico.';
     }
   };
   
@@ -990,12 +911,16 @@ document.addEventListener('DOMContentLoaded', () => {
       if (resultado && resultado.sucesso && Array.isArray(resultado.dados)) {
         atualizarTabelaRetiradas(resultado.dados);
       } else {
-        console.log('Resultado sem sucesso ou dados inválidos:', resultado);
-        atualizarTabelaRetiradas([]);
+        throw new Error(resultado?.mensagem || 'Não foi possível carregar as retiradas.');
       }
     } catch (error) {
       console.error('Erro ao carregar retiradas:', error);
-      atualizarTabelaRetiradas([]);
+      retiradasTable.replaceChildren();
+      const linha = retiradasTable.insertRow();
+      const celula = linha.insertCell();
+      celula.colSpan = 5;
+      celula.textContent = 'Não foi possível carregar as retiradas.';
+      totalRetiradasDisplay.parentElement.style.display = 'none';
     }
   };
 
@@ -1013,22 +938,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const totalRetirado = retiradas.reduce((sum, retirada) => sum + (retirada.valor || 0), 0);
-
-    const linhas = retiradas.map(retirada => {
+    const totalRetirado = retiradas.reduce((sum, retirada) => sum + (Number(retirada.valor) || 0), 0);
+    retiradasTable.replaceChildren();
+    retiradas.forEach(retirada => {
       const dataHora = retirada.dataCriacao ? new Date(retirada.dataCriacao).toLocaleString('pt-BR') : 'N/A';
-      return `
-        <tr>
-          <td>${dataHora}</td>
-          <td>${retirada.responsavel || 'N/A'}</td>
-          <td>${formatarMoeda(retirada.valor || 0)}</td>
-          <td>${retirada.motivo || '-'}</td>
-          <td>${retirada.observacoes || '-'}</td>
-        </tr>
-      `;
-    }).join('');
-
-    retiradasTable.innerHTML = linhas;
+      const row = retiradasTable.insertRow();
+      [dataHora, retirada.responsavel || 'N/A', formatarMoeda(retirada.valor || 0), retirada.motivo || '-', retirada.observacoes || '-']
+        .forEach(valor => { const td = row.insertCell(); td.textContent = String(valor); });
+    });
 
     if (elementoExiste(totalRetiradasDisplay)) {
       totalRetiradasDisplay.textContent = formatarMoeda(totalRetirado);
@@ -1070,19 +987,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (elementoExiste(detailCaixa)) {
-          detailCaixa.textContent = `R$ ${formatarMoeda(totalVendasValor)} - R$ ${formatarMoeda(totalRetiradasValor)}`;
+          detailCaixa.textContent = `${formatarMoeda(totalVendasValor)} em entradas de dinheiro − ${formatarMoeda(totalRetiradasValor)} em retiradas`;
         }
       } else {
         console.error('Erro ao carregar saldo do caixa:', resultado);
         if (elementoExiste(totalCaixa)) {
-          totalCaixa.textContent = 'R$ 0,00';
+          totalCaixa.textContent = 'Indisponível';
           totalCaixa.classList.remove('loading-spinner');
         }
       }
     } catch (error) {
       console.error('Erro ao carregar total do caixa:', error);
       if (elementoExiste(totalCaixa)) {
-        totalCaixa.textContent = 'R$ 0,00';
+        totalCaixa.textContent = 'Indisponível';
         totalCaixa.classList.remove('loading-spinner');
       }
     }
@@ -1161,53 +1078,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const hoje = new Date();
     const seteAtras = new Date();
-    seteAtras.setDate(hoje.getDate() - 7);
+    seteAtras.setDate(hoje.getDate() - 6);
     
-    dataFim.value = hoje.toISOString().split('T')[0];
-    dataInicio.value = seteAtras.toISOString().split('T')[0];
-  };
-  
-  // Implementar método de fallback com dados de exemplo
-  const implementarFallbacks = () => {
-    // Verificar se Chart.js está disponível, caso não, carregar
-    if (typeof Chart === 'undefined') {
-      console.warn("Chart.js não está disponível. Tentando carregar...");
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-      script.onload = () => console.log("Chart.js carregado!");
-      script.onerror = () => console.error("Falha ao carregar Chart.js");
-      document.head.appendChild(script);
-    }
-    
-    // Implementar API de relatórios de fallback se não estiver disponível
-    if (!window.relatoriosAPI) {
-      console.warn("Implementando API de relatórios de fallback");
-      window.relatoriosAPI = {
-        gerarRelatorio: async () => {
-          console.log("Usando API de relatórios de fallback");
-          return gerarDadosExemplo();
-        },
-        exportarPDF: async () => {
-          return { success: true, message: 'PDF gerado com sucesso (simulado)' };
-        },
-        exportarExcel: async () => {
-          return { success: true, message: 'Excel gerado com sucesso (simulado)' };
-        }
-      };
-    }
-    
-    // Implementar API de vendas de fallback
-    if (!window.vendasAPI) {
-      console.warn("Implementando API de vendas de fallback");
-      window.vendasAPI = {
-        getVendedores: async () => {
-          return [
-            { id: '1', nome: 'Vendedor Exemplo 1' },
-            { id: '2', nome: 'Vendedor Exemplo 2' }
-          ];
-        }
-      };
-    }
+    dataFim.value = dataLocal(hoje);
+    dataInicio.value = dataLocal(seteAtras);
   };
   
   // Inicializar a aplicação
@@ -1216,10 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("Inicializando aplicação de relatórios...");
       
       // Verificar elementos críticos
-      if (!verificarElementos()) {
-        console.error("Elementos críticos faltando na página");
-        implementarFallbacks();
-      }
+      if (!verificarElementos()) return;
       
       // Configurar datas iniciais
       configurarDatasIniciais();
@@ -1235,8 +1106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Verificar API de relatórios
       if (!verificarAPIRelatorios()) {
-        console.warn("API de relatórios não disponível, usando dados de exemplo");
-        exibirDadosExemplo();
+        resetarUI();
         return;
       }
       
@@ -1247,13 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error("Erro durante inicialização:", error);
       mostrarErro("Falha ao carregar relatório inicial: " + error.message);
       
-      // Em caso de falha, tentar exibir dados de exemplo
-      try {
-        exibirDadosExemplo();
-      } catch (fallbackError) {
-        console.error("Erro ao exibir dados de exemplo:", fallbackError);
-        resetarUI();
-      }
+      resetarUI();
     }
   };
   
